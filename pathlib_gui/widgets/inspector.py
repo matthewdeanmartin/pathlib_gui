@@ -121,6 +121,10 @@ class MetadataTab(ttk.Frame):
         lines.append("")
         row("Permissions", info.permissions_string())
         row("Mode (octal)", oct(stat.S_IMODE(info.mode)) if info.mode else "")
+        if info.owner:
+            row("Owner", info.owner)
+        if info.group:
+            row("Group", info.group)
         if info.mime_type:
             row("MIME type", info.mime_type)
 

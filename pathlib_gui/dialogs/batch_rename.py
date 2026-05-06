@@ -161,29 +161,30 @@ class BatchRenameDialog(tk.Toplevel):
         mode = self.mode_var.get()
         params = self.get_params()
         self.preview_map = []
-        seen: set[str] = set()
-        conflicts: set[str] = set()
 
-        new_names: list[str] = []
+        # Single pass: compute final names (handles stateful modes like Number sequence)
+        seq_counter = int(params.get("start", "1") or "1") if mode == "Number sequence" else 0
+        seq_pad = int(params.get("pad", "3") or "3") if mode == "Number sequence" else 3
+
+        computed: list[str] = []
         for p in self.paths:
-            new_name = apply_rename_mode(p.name, mode, params)
-            new_names.append(new_name)
-            if new_name in seen:
-                conflicts.add(new_name)
-            seen.add(new_name)
-
-        counter_map: dict[str, int] = {}
-        for p, new_name in zip(self.paths, new_names):
             if mode == "Number sequence":
-                start = int(self.param_widgets.get("start", tk.StringVar(value="1")).get() or "1")
-                pad = int(self.param_widgets.get("pad", tk.StringVar(value="3")).get() or "3")
-                idx = counter_map.get("_seq", start)
-                new_name = f"{idx:0{pad}d}_{p.name}"
-                counter_map["_seq"] = idx + 1
+                new_name = f"{seq_counter:0{seq_pad}d}_{p.name}"
+                seq_counter += 1
+            else:
+                new_name = apply_rename_mode(p.name, mode, params)
+            computed.append(new_name)
 
+        # Detect conflicts (duplicates within the proposed set)
+        seen: dict[str, int] = {}
+        for name in computed:
+            seen[name] = seen.get(name, 0) + 1
+        conflicts = {name for name, count in seen.items() if count > 1}
+
+        for p, new_name in zip(self.paths, computed):
             changed = new_name != p.name
-            conflict = new_name in conflicts and new_name != p.name
-            exists = (p.parent / new_name).exists() and new_name != p.name
+            conflict = new_name in conflicts and changed
+            exists = (p.parent / new_name).exists() and changed
 
             if conflict or exists:
                 status = "CONFLICT"
@@ -207,7 +208,7 @@ class BatchRenameDialog(tk.Toplevel):
         errors: list[str] = []
         for p, new_name in renames:
             dst = p.parent / new_name
-            if dst.exists():
+            if dst.exists() and dst != p:
                 errors.append(f"Skipped {p.name} → {new_name} (destination exists)")
                 continue
             try:

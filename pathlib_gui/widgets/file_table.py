@@ -102,8 +102,24 @@ class FileTable(ttk.Frame):
 
     def refresh_tree(self) -> None:
         self.tree.delete(*self.tree.get_children())
+        self.tree.tag_configure("broken_symlink", foreground="red")
         for info in self.entries:
-            icon = "📁" if info.is_dir else "📄"
+            if info.is_broken_symlink:
+                icon = "🔗"
+                kind = info.kind_label() + " → broken"
+                tags = ("broken_symlink",)
+            elif info.is_symlink:
+                icon = "🔗"
+                kind = info.kind_label()
+                tags = ()
+            elif info.is_dir:
+                icon = "📁"
+                kind = info.kind_label()
+                tags = ()
+            else:
+                icon = "📄"
+                kind = info.kind_label()
+                tags = ()
             self.tree.insert(
                 "",
                 tk.END,
@@ -111,10 +127,11 @@ class FileTable(ttk.Frame):
                 values=(
                     f"{icon} {info.name}",
                     format_size(info.size, info.is_dir),
-                    info.kind_label(),
+                    kind,
                     format_timestamp(info.modified),
                     info.permissions_string(),
                 ),
+                tags=tags,
             )
 
     def sort_by(self, column: str) -> None:

@@ -3,12 +3,62 @@
 from __future__ import annotations
 
 import os
+import queue
 import shutil
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 from pathlib_gui.models.operations import FileOperation
+
+
+class CopyWorker:
+    """Background thread for copying a list of (src, dst) pairs.
+
+    Posts progress tuples ``(done: int, total: int, current: str)`` to *result_queue*.
+    Posts ``DONE`` sentinel when finished, or ``("ERROR", msg)`` on failure.
+    """
+
+    DONE = object()
+
+    def __init__(
+        self,
+        pairs: list[tuple[Path, Path]],
+        result_queue: queue.Queue[object],
+        move: bool = False,
+    ) -> None:
+        self.pairs = pairs
+        self.result_queue = result_queue
+        self.move = move
+        self.cancel_event = threading.Event()
+        self.thread = threading.Thread(target=self.run, daemon=True)
+
+    def start(self) -> None:
+        self.thread.start()
+
+    def cancel(self) -> None:
+        self.cancel_event.set()
+
+    def run(self) -> None:
+        total = len(self.pairs)
+        for i, (src, dst) in enumerate(self.pairs):
+            if self.cancel_event.is_set():
+                break
+            self.result_queue.put((i, total, src.name))
+            try:
+                if src.is_dir():
+                    shutil.copytree(src, dst)
+                else:
+                    shutil.copy2(src, dst)
+                if self.move:
+                    if src.is_dir():
+                        shutil.rmtree(src)
+                    else:
+                        src.unlink()
+            except OSError as e:
+                self.result_queue.put(("ERROR", f"{src.name}: {e}"))
+        self.result_queue.put(self.DONE)
 
 
 def copy_file(src: Path, dst: Path) -> FileOperation:

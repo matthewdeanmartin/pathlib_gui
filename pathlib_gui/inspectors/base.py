@@ -46,10 +46,19 @@ def inspector_for_path(parent: tk.Widget, path: Path) -> BaseInspector:
         return JsonInspector(parent)
     if suffix in (".toml",):
         return TomlInspector(parent)
-    if suffix in (".xml", ".xhtml", ".svg", ".plist"):
+    if suffix in (".xml", ".xhtml", ".svg"):
         return XmlInspector(parent)
     if suffix in IMAGE_SUFFIXES:
         return ImageInspector(parent)
+    if suffix in (".plist",):
+        from pathlib_gui.inspectors.plist_inspector import PlistInspector
+        return PlistInspector(parent)
+    if suffix in (".mbox", ".mbx", ".eml"):
+        from pathlib_gui.inspectors.mailbox_inspector import MailboxInspector
+        return MailboxInspector(parent)
+    if suffix in (".ini", ".cfg", ".conf"):
+        from pathlib_gui.inspectors.ini_inspector import IniInspector
+        return IniInspector(parent)
     if suffix in (
         ".txt", ".md", ".rst", ".py", ".pyw", ".js", ".ts", ".css", ".html",
         ".htm", ".yaml", ".yml", ".ini", ".cfg", ".conf", ".sh", ".bat",

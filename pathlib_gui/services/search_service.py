@@ -76,6 +76,14 @@ class SearchWorker:
                     pass
             return None
 
+        # File-type filter
+        if q.file_type == "file" and not path.is_file():
+            return None
+        if q.file_type == "directory" and not path.is_dir():
+            return None
+        if q.file_type == "symlink" and not path.is_symlink():
+            return None
+
         if q.glob_pattern and not fnmatch.fnmatch(name, q.glob_pattern):
             return None
 
@@ -98,6 +106,23 @@ class SearchWorker:
             if q.min_size and size < q.min_size:
                 return None
             if q.max_size and size > q.max_size:
+                return None
+
+        # Date-range filter
+        if q.modified_after or q.modified_before:
+            try:
+                mtime = path.stat().st_mtime
+            except OSError:
+                return None
+            if q.modified_after and mtime < q.modified_after:
+                return None
+            if q.modified_before and mtime > q.modified_before:
+                return None
+
+        # MIME-type filter
+        if q.mime_contains:
+            mime, _ = mimetypes.guess_type(name)
+            if not mime or q.mime_contains.lower() not in mime.lower():
                 return None
 
         if q.content_contains:

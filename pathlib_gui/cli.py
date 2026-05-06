@@ -69,6 +69,9 @@ def main() -> None:
         p = Path(args.file).resolve()
         root = tk.Tk()
         app = PathlibGuiApp(root, initial_path=p.parent if p.exists() else None)
+        if p.is_file():
+            from pathlib_gui.models.paths import PathInfo
+            root.after(100, lambda: app.inspector.show(PathInfo.from_path(p)))
         root.mainloop()
         return
 

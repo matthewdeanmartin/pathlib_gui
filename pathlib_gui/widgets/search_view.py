@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import queue
 import tkinter as tk
 from pathlib import Path
@@ -10,6 +11,21 @@ from typing import Callable
 
 from pathlib_gui.models.search import SearchQuery, SearchResult
 from pathlib_gui.services.search_service import SearchWorker
+
+FILE_TYPES = ["any", "file", "directory", "symlink"]
+
+
+def _parse_date(s: str) -> float:
+    """Parse YYYY-MM-DD to a Unix timestamp, or return 0.0 on failure."""
+    s = s.strip()
+    if not s:
+        return 0.0
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y"):
+        try:
+            return datetime.datetime.strptime(s, fmt).timestamp()
+        except ValueError:
+            continue
+    return 0.0
 
 
 class SearchView(ttk.Frame):
@@ -29,9 +45,11 @@ class SearchView(ttk.Frame):
         self.build_widgets()
 
     def build_widgets(self) -> None:
-        ttk.Label(self, text="Search  —  Backend: pathlib.rglob / re / fnmatch / mimetypes", foreground="gray").pack(
-            anchor="w", padx=6, pady=(4, 2)
-        )
+        ttk.Label(
+            self,
+            text="Search  —  Backend: pathlib.rglob / re / fnmatch / mimetypes",
+            foreground="gray",
+        ).pack(anchor="w", padx=6, pady=(4, 2))
 
         criteria = ttk.LabelFrame(self, text="Criteria", padding=6)
         criteria.pack(fill=tk.X, padx=6, pady=4)
@@ -44,11 +62,15 @@ class SearchView(ttk.Frame):
         self.content_var = tk.StringVar()
         self.min_size_var = tk.StringVar()
         self.max_size_var = tk.StringVar()
+        self.modified_after_var = tk.StringVar()
+        self.modified_before_var = tk.StringVar()
+        self.mime_var = tk.StringVar()
+        self.file_type_var = tk.StringVar(value="any")
         self.empty_files_var = tk.BooleanVar()
         self.empty_dirs_var = tk.BooleanVar()
         self.broken_links_var = tk.BooleanVar()
 
-        rows = [
+        text_rows = [
             ("Search in:", self.root_var, None),
             ("Name contains:", self.name_var, None),
             ("Glob pattern:", self.glob_var, "e.g. *.py"),
@@ -57,16 +79,29 @@ class SearchView(ttk.Frame):
             ("Content contains:", self.content_var, None),
             ("Min size (bytes):", self.min_size_var, None),
             ("Max size (bytes):", self.max_size_var, None),
+            ("Modified after:", self.modified_after_var, "YYYY-MM-DD"),
+            ("Modified before:", self.modified_before_var, "YYYY-MM-DD"),
+            ("MIME type contains:", self.mime_var, "e.g. image, text/plain"),
         ]
-        for i, (label, var, hint) in enumerate(rows):
+        for i, (label, var, hint) in enumerate(text_rows):
             ttk.Label(criteria, text=label).grid(row=i, column=0, sticky="e", padx=4, pady=2)
             entry = ttk.Entry(criteria, textvariable=var, width=36)
             entry.grid(row=i, column=1, sticky="w", padx=2)
             if hint:
-                ttk.Label(criteria, text=hint, foreground="gray").grid(row=i, column=2, sticky="w", padx=4)
+                ttk.Label(criteria, text=hint, foreground="gray").grid(
+                    row=i, column=2, sticky="w", padx=4
+                )
+
+        next_row = len(text_rows)
+
+        ttk.Label(criteria, text="File type:").grid(row=next_row, column=0, sticky="e", padx=4, pady=2)
+        type_combo = ttk.Combobox(
+            criteria, textvariable=self.file_type_var, values=FILE_TYPES, state="readonly", width=14
+        )
+        type_combo.grid(row=next_row, column=1, sticky="w", padx=2)
 
         checks = ttk.Frame(criteria)
-        checks.grid(row=len(rows), column=0, columnspan=3, sticky="w", pady=4)
+        checks.grid(row=next_row + 1, column=0, columnspan=3, sticky="w", pady=4)
         ttk.Checkbutton(checks, text="Empty files", variable=self.empty_files_var).pack(side=tk.LEFT, padx=4)
         ttk.Checkbutton(checks, text="Empty folders", variable=self.empty_dirs_var).pack(side=tk.LEFT, padx=4)
         ttk.Checkbutton(checks, text="Broken symlinks", variable=self.broken_links_var).pack(side=tk.LEFT, padx=4)
@@ -117,6 +152,12 @@ class SearchView(ttk.Frame):
         self.stop_btn.configure(state=tk.NORMAL)
 
         self.result_queue = queue.Queue()
+        try:
+            min_size = int(self.min_size_var.get() or 0)
+            max_size = int(self.max_size_var.get() or 0)
+        except ValueError:
+            min_size = max_size = 0
+
         query = SearchQuery(
             root=root,
             name_contains=self.name_var.get().strip(),
@@ -124,11 +165,15 @@ class SearchView(ttk.Frame):
             regex_pattern=self.regex_var.get().strip(),
             suffix=self.suffix_var.get().strip(),
             content_contains=self.content_var.get().strip(),
-            min_size=int(self.min_size_var.get() or 0),
-            max_size=int(self.max_size_var.get() or 0),
+            min_size=min_size,
+            max_size=max_size,
             find_empty_files=self.empty_files_var.get(),
             find_empty_dirs=self.empty_dirs_var.get(),
             find_broken_symlinks=self.broken_links_var.get(),
+            modified_after=_parse_date(self.modified_after_var.get()),
+            modified_before=_parse_date(self.modified_before_var.get()),
+            file_type=self.file_type_var.get(),
+            mime_contains=self.mime_var.get().strip(),
         )
         self.worker = SearchWorker(query, self.result_queue)
         self.worker.start()

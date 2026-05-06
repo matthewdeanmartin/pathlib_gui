@@ -5,8 +5,25 @@ from __future__ import annotations
 import mimetypes
 import os
 import stat
+import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+
+def _owner_group(st: os.stat_result) -> tuple[str, str]:
+    if sys.platform == "win32":
+        return "", ""
+    try:
+        import pwd
+        owner = pwd.getpwuid(st.st_uid).pw_name
+    except Exception:
+        owner = str(st.st_uid)
+    try:
+        import grp
+        group = grp.getgrgid(st.st_gid).gr_name
+    except Exception:
+        group = str(st.st_gid)
+    return owner, group
 
 
 @dataclass
@@ -27,6 +44,12 @@ class PathInfo:
     is_symlink: bool
     mime_type: str
     exists: bool
+    owner: str
+    group: str
+
+    @property
+    def is_broken_symlink(self) -> bool:
+        return self.is_symlink and not self.path.exists()
 
     @staticmethod
     def from_path(p: Path) -> PathInfo:
@@ -38,6 +61,7 @@ class PathInfo:
             created = st.st_ctime
             accessed = st.st_atime
             mode = st.st_mode
+            owner, group = _owner_group(st)
         except OSError:
             exists = False
             size = 0
@@ -45,6 +69,8 @@ class PathInfo:
             created = 0.0
             accessed = 0.0
             mode = 0
+            owner = ""
+            group = ""
 
         mime_type, _ = mimetypes.guess_type(p.name)
 
@@ -63,6 +89,8 @@ class PathInfo:
             is_symlink=p.is_symlink(),
             mime_type=mime_type or "",
             exists=exists,
+            owner=owner,
+            group=group,
         )
 
     def permissions_string(self) -> str:

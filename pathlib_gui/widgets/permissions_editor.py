@@ -119,10 +119,69 @@ class PermissionsEditor(ttk.Frame):
         mode = self.current_mode
 
         if recursive and self.path.is_dir():
-            summary = f"Apply {oct(mode)} recursively to:\n  {self.path}\n\nThis changes permissions on all contained files and folders."
-            if not messagebox.askokcancel("Confirm Recursive chmod", summary, icon=messagebox.WARNING, parent=self):
+            self.show_recursive_chmod_preview(mode)
+        else:
+            try:
+                self.path.chmod(mode)
+            except OSError as e:
+                messagebox.showerror("chmod Failed", str(e), parent=self)
                 return
+            self.load(self.path)
+
+    def show_recursive_chmod_preview(self, mode: int) -> None:
+        """Show a dry-run table of recursive chmod before applying."""
+        import tkinter as tk
+        from tkinter import ttk
+
+        win = tk.Toplevel(self)
+        win.title("Recursive chmod — Dry Run Preview")
+        win.geometry("680x420")
+        win.grab_set()
+
+        ttk.Label(
+            win,
+            text=f"Proposed change: {oct(mode)}  {stat.filemode(mode)}\n"
+                 f"Target directory: {self.path}",
+            foreground="gray",
+        ).pack(anchor="w", padx=8, pady=(8, 4))
+
+        tree = ttk.Treeview(win, columns=("path", "old", "new"), show="headings")
+        tree.heading("path", text="Path")
+        tree.heading("old", text="Current")
+        tree.heading("new", text="New")
+        tree.column("path", width=380)
+        tree.column("old", width=110)
+        tree.column("new", width=110)
+        sb = ttk.Scrollbar(win, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=sb.set)
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(8, 0), pady=4)
+        sb.pack(side=tk.LEFT, fill=tk.Y, pady=4, padx=(0, 8))
+
+        assert self.path is not None
+        candidates = [self.path] + list(self.path.rglob("*"))
+        for p in candidates[:500]:
+            try:
+                old_mode = stat.S_IMODE(p.lstat().st_mode)
+            except OSError:
+                continue
+            tree.insert(
+                "",
+                tk.END,
+                values=(
+                    str(p.relative_to(self.path.parent)),
+                    stat.filemode(old_mode),
+                    stat.filemode(mode),
+                ),
+            )
+
+        if len(candidates) > 500:
+            ttk.Label(win, text=f"(showing first 500 of {len(candidates)} paths)", foreground="gray").pack(
+                anchor="w", padx=8
+            )
+
+        def apply_all() -> None:
             errors: list[str] = []
+            assert self.path is not None
             for p in self.path.rglob("*"):
                 try:
                     os.chmod(p, mode)
@@ -132,16 +191,15 @@ class PermissionsEditor(ttk.Frame):
                 os.chmod(self.path, mode)
             except OSError as e:
                 errors.append(f"{self.path}: {e}")
+            win.destroy()
             if errors:
                 messagebox.showerror("chmod Errors", "\n".join(errors[:10]), parent=self)
-        else:
-            try:
-                self.path.chmod(mode)
-            except OSError as e:
-                messagebox.showerror("chmod Failed", str(e), parent=self)
-                return
+            self.load(self.path)
 
-        self.load(self.path)
+        btn = ttk.Frame(win)
+        btn.pack(fill=tk.X, padx=8, pady=(0, 8))
+        ttk.Button(btn, text="Apply", command=apply_all).pack(side=tk.RIGHT, padx=4)
+        ttk.Button(btn, text="Cancel", command=win.destroy).pack(side=tk.RIGHT)
 
     def clear(self) -> None:
         self.path = None

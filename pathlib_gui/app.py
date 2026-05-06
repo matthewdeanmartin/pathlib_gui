@@ -6,14 +6,21 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
+import queue as q_mod
+
+from pathlib_gui.config import get_prefs
 from pathlib_gui.dialogs.archive_create import show_create_archive_dialog
 from pathlib_gui.dialogs.batch_rename import BatchRenameDialog
 from pathlib_gui.dialogs.compare import pick_compare_pair
 from pathlib_gui.dialogs.copy_move import ask_copy_destination, ask_move_destination
 from pathlib_gui.dialogs.delete import confirm_delete, confirm_trash
+from pathlib_gui.dialogs.preferences import PreferencesDialog
 from pathlib_gui.dialogs.rename import ask_rename
+from pathlib_gui.dialogs.symlink import CreateSymlinkDialog
+from pathlib_gui.models.history import get_history
 from pathlib_gui.models.paths import PathInfo
 from pathlib_gui.services.filesystem import (
+    CopyWorker,
     copy_file,
     copy_tree,
     delete_file,
@@ -31,6 +38,7 @@ from pathlib_gui.widgets.diff_view import DiffView, DirCompareView
 from pathlib_gui.widgets.duplicate_finder import DuplicateFinderView
 from pathlib_gui.widgets.file_table import FileTable
 from pathlib_gui.widgets.inspector import InspectorPane
+from pathlib_gui.widgets.operation_queue import OperationEntry, OperationQueueView
 from pathlib_gui.widgets.path_bar import PathBar
 from pathlib_gui.widgets.places_sidebar import PlacesSidebar
 from pathlib_gui.widgets.search_view import SearchView
@@ -108,6 +116,7 @@ class PathlibGuiApp:
         self.root.title("pathlib_gui — Python Filesystem Workbench")
         self.root.geometry("1200x750")
         self.history = NavigationHistory()
+        self.prefs = get_prefs()
         self.current_path: Path = initial_path or Path.home()
 
         self.build_ui()
@@ -132,15 +141,26 @@ class PathlibGuiApp:
         self.path_bar = PathBar(self.root, on_navigate=self.navigate_to)
         self.path_bar.pack(side=tk.TOP, fill=tk.X, padx=4)
 
-        # Main notebook — Browse / Compare / Archive / Search / Duplicates
-        self.main_notebook = ttk.Notebook(self.root)
-        self.main_notebook.pack(fill=tk.BOTH, expand=True)
+        # Main pane: notebook on top, operation queue panel at bottom
+        main_vpane = ttk.PanedWindow(self.root, orient=tk.VERTICAL)
+        main_vpane.pack(fill=tk.BOTH, expand=True)
+
+        # Main notebook — Browse / Compare / Archive / Search / Duplicates / Stdlib Map
+        self.main_notebook = ttk.Notebook(main_vpane)
+        main_vpane.add(self.main_notebook, weight=5)
 
         self.build_browse_tab()
         self.build_compare_tab()
         self.build_archive_tab()
         self.build_search_tab()
         self.build_duplicates_tab()
+        self.build_stdlib_map_tab()
+
+        # Operation queue panel (collapsible via the pane sash)
+        queue_frame = ttk.LabelFrame(main_vpane, text="Operation Queue")
+        main_vpane.add(queue_frame, weight=1)
+        self.op_queue_view = OperationQueueView(queue_frame)
+        self.op_queue_view.pack(fill=tk.BOTH, expand=True)
 
         self.status_bar = StatusBar(self.root)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
@@ -232,8 +252,11 @@ class PathlibGuiApp:
         menubar.add_cascade(label="File", menu=file_menu)
         file_menu.add_command(label="New Folder\tCtrl+Shift+N", command=self.cmd_new_folder)
         file_menu.add_command(label="New File\tCtrl+N", command=self.cmd_new_file)
+        file_menu.add_command(label="New Symlink…", command=self.cmd_new_symlink)
         file_menu.add_separator()
         file_menu.add_command(label="Open with System App\tCtrl+O", command=self.cmd_open_system)
+        file_menu.add_separator()
+        file_menu.add_command(label="Preferences…", command=self.cmd_preferences)
         file_menu.add_separator()
         file_menu.add_command(label="Quit\tCtrl+Q", command=self.root.quit)
 
@@ -243,6 +266,12 @@ class PathlibGuiApp:
         edit_menu.add_command(label="Move\tCtrl+X", command=self.cmd_move)
         edit_menu.add_command(label="Rename\tF2", command=self.cmd_rename)
         edit_menu.add_command(label="Batch Rename…", command=self.cmd_batch_rename)
+        edit_menu.add_separator()
+        edit_menu.add_command(label="Batch Copy…", command=self.cmd_batch_copy)
+        edit_menu.add_command(label="Batch Move…", command=self.cmd_batch_move)
+        edit_menu.add_command(label="Batch Delete permanently", command=self.cmd_batch_delete)
+        if send2trash_available():
+            edit_menu.add_command(label="Batch Move to Trash", command=self.cmd_batch_trash)
         edit_menu.add_separator()
         if send2trash_available():
             edit_menu.add_command(label="Move to Trash\tDelete", command=self.cmd_trash)
@@ -258,19 +287,23 @@ class PathlibGuiApp:
         tools_menu.add_separator()
         tools_menu.add_command(label="Batch hash selected…", command=self.cmd_batch_hash)
         tools_menu.add_command(label="Batch touch selected", command=self.cmd_batch_touch)
+        tools_menu.add_command(label="Batch chmod selected…", command=self.cmd_batch_chmod)
         tools_menu.add_separator()
         tools_menu.add_command(label="Search…\tCtrl+F", command=self.cmd_open_search)
         tools_menu.add_command(label="Find duplicates…", command=self.cmd_open_duplicates)
+        tools_menu.add_separator()
+        tools_menu.add_command(label="Operation History…", command=self.cmd_show_history)
 
         view_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="View", menu=view_menu)
         view_menu.add_command(label="Refresh\tF5", command=self.refresh)
         view_menu.add_command(label="Toggle Hidden Files\tCtrl+H", command=self.toggle_hidden)
+        view_menu.add_separator()
+        view_menu.add_command(label="Stdlib Module Map", command=self.cmd_open_stdlib_map)
 
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Help", menu=help_menu)
         help_menu.add_command(label="About pathlib_gui", command=self.show_about)
-        help_menu.add_command(label="Stdlib Module Map", command=self.show_stdlib_map)
 
     def bind_keyboard_shortcuts(self) -> None:
         self.root.bind("<Control-n>", lambda e: self.cmd_new_file())
@@ -291,6 +324,8 @@ class PathlibGuiApp:
         self.current_path = path
         if record:
             self.history.push(path)
+            self.prefs.add_recent(path)
+            self.prefs.save()
         self.path_bar.set_path(path)
         self.file_table.load(path)
         self.inspector.clear()
@@ -384,19 +419,8 @@ class PathlibGuiApp:
         dst_dir = ask_copy_destination(self.root, infos[0].name)
         if not dst_dir:
             return
-        errors: list[str] = []
-        for info in infos:
-            try:
-                if info.is_dir:
-                    copy_tree(info.path, dst_dir / info.name)
-                else:
-                    copy_file(info.path, dst_dir / info.name)
-            except Exception as e:
-                errors.append(f"{info.name}: {e}")
-        if errors:
-            messagebox.showerror("Copy Errors", "\n".join(errors), parent=self.root)
-        else:
-            self.status_bar.set_message(f"Copied {len(infos)} item(s)  [Backend: shutil.copy2 / shutil.copytree]")
+        pairs = [(i.path, dst_dir / i.name) for i in infos]
+        self.run_copy_worker(pairs, move=False, label=f"Copy {len(pairs)} item(s)")
 
     def cmd_move(self) -> None:
         infos = self.file_table.selected_infos()
@@ -405,17 +429,8 @@ class PathlibGuiApp:
         dst_dir = ask_move_destination(self.root, infos[0].name)
         if not dst_dir:
             return
-        errors: list[str] = []
-        for info in infos:
-            try:
-                move_path(info.path, dst_dir / info.name)
-            except Exception as e:
-                errors.append(f"{info.name}: {e}")
-        if errors:
-            messagebox.showerror("Move Errors", "\n".join(errors), parent=self.root)
-        else:
-            self.status_bar.set_message(f"Moved {len(infos)} item(s)  [Backend: shutil.move]")
-        self.refresh()
+        pairs = [(i.path, dst_dir / i.name) for i in infos]
+        self.run_copy_worker(pairs, move=True, label=f"Move {len(pairs)} item(s)")
 
     def cmd_rename(self) -> None:
         infos = self.file_table.selected_infos()
@@ -426,7 +441,8 @@ class PathlibGuiApp:
         if not new_name or new_name == info.name:
             return
         try:
-            rename_path(info.path, new_name)
+            op = rename_path(info.path, new_name)
+            get_history().record(op)
             self.status_bar.set_message(f"Renamed to: {new_name}  [Backend: pathlib.Path.rename]")
             self.refresh()
         except Exception as e:
@@ -671,78 +687,306 @@ class PathlibGuiApp:
         self.main_notebook.select(4)
         self.duplicate_view.set_root(self.current_path)
 
+    def run_copy_worker(self, pairs: list[tuple[Path, Path]], move: bool, label: str) -> None:
+        """Start a threaded copy/move and track it in the operation queue panel."""
+        result_queue: q_mod.Queue[object] = q_mod.Queue()
+        worker = CopyWorker(pairs, result_queue, move=move)
+        entry = OperationEntry(label=label, total=len(pairs))
+        idx = self.op_queue_view.add_operation(entry)
+        worker.start()
+        verb = "Moved" if move else "Copied"
+        backend = "shutil.move" if move else "shutil.copy2/copytree"
+
+        def poll() -> None:
+            errors: list[str] = []
+            while True:
+                try:
+                    item = result_queue.get_nowait()
+                except q_mod.Empty:
+                    break
+                if item is CopyWorker.DONE:
+                    self.op_queue_view.mark_done(idx, error="\n".join(errors))
+                    if errors:
+                        messagebox.showerror(f"{verb} Errors", "\n".join(errors), parent=self.root)
+                    else:
+                        self.status_bar.set_message(
+                            f"{verb} {len(pairs)} item(s)  [Backend: {backend}]"
+                        )
+                    self.refresh()
+                    return
+                if isinstance(item, tuple) and item[0] == "ERROR":
+                    errors.append(item[1])
+                elif isinstance(item, tuple) and len(item) == 3:
+                    done, total, name = item
+                    self.op_queue_view.update_operation(idx, done, f"{name}")
+            self.root.after(100, poll)
+
+        self.root.after(100, poll)
+
+    def cmd_batch_copy(self) -> None:
+        infos = self.file_table.selected_infos()
+        if not infos:
+            messagebox.showinfo("Batch Copy", "Select files/folders to copy.", parent=self.root)
+            return
+        dst_dir = ask_copy_destination(self.root, infos[0].name)
+        if not dst_dir:
+            return
+        pairs = [(i.path, dst_dir / i.name) for i in infos]
+        self.run_copy_worker(pairs, move=False, label=f"Batch copy {len(pairs)} item(s)")
+
+    def cmd_batch_move(self) -> None:
+        infos = self.file_table.selected_infos()
+        if not infos:
+            messagebox.showinfo("Batch Move", "Select files/folders to move.", parent=self.root)
+            return
+        dst_dir = ask_move_destination(self.root, infos[0].name)
+        if not dst_dir:
+            return
+        pairs = [(i.path, dst_dir / i.name) for i in infos]
+        self.run_copy_worker(pairs, move=True, label=f"Batch move {len(pairs)} item(s)")
+
+    def cmd_batch_delete(self) -> None:
+        infos = self.file_table.selected_infos()
+        if not infos:
+            return
+        if not confirm_delete(self.root, [i.path for i in infos]):
+            return
+        errors: list[str] = []
+        for info in infos:
+            try:
+                if info.is_dir:
+                    delete_tree(info.path)
+                else:
+                    delete_file(info.path)
+            except Exception as e:
+                errors.append(f"{info.name}: {e}")
+        if errors:
+            messagebox.showerror("Delete Errors", "\n".join(errors), parent=self.root)
+        else:
+            self.status_bar.set_message(
+                f"Deleted {len(infos)} item(s)  [Backend: pathlib.Path.unlink / shutil.rmtree]"
+            )
+        self.refresh()
+
+    def cmd_batch_trash(self) -> None:
+        infos = self.file_table.selected_infos()
+        if not infos:
+            return
+        if not confirm_trash(self.root, [i.path for i in infos]):
+            return
+        errors: list[str] = []
+        for info in infos:
+            try:
+                trash_path(info.path)
+            except Exception as e:
+                errors.append(f"{info.name}: {e}")
+        if errors:
+            messagebox.showerror("Trash Errors", "\n".join(errors), parent=self.root)
+        else:
+            self.status_bar.set_message(
+                f"Trashed {len(infos)} item(s)  [Backend: send2trash.send2trash]"
+            )
+        self.refresh()
+
+    def cmd_batch_chmod(self) -> None:
+        infos = self.file_table.selected_infos()
+        if not infos:
+            messagebox.showinfo("Batch chmod", "Select files/folders to change permissions.", parent=self.root)
+            return
+        raw = simpledialog.askstring(
+            "Batch chmod",
+            "Enter octal permission mode (e.g. 0o644):",
+            initialvalue="0o644",
+            parent=self.root,
+        )
+        if not raw:
+            return
+        try:
+            mode = int(raw.strip(), 8)
+        except ValueError:
+            messagebox.showerror("Invalid mode", f"Not a valid octal value: {raw!r}", parent=self.root)
+            return
+
+        # Dry-run preview
+        win = tk.Toplevel(self.root)
+        win.title("chmod Dry Run")
+        win.geometry("600x360")
+        tree = ttk.Treeview(win, columns=("path", "old", "new"), show="headings")
+        tree.heading("path", text="Path")
+        tree.heading("old", text="Current mode")
+        tree.heading("new", text="New mode")
+        tree.column("path", width=300)
+        tree.column("old", width=120)
+        tree.column("new", width=120)
+        tree.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+        import stat as stat_mod
+        for info in infos:
+            old_sym = stat_mod.filemode(info.mode) if info.mode else "??"
+            new_sym = stat_mod.filemode(mode)
+            tree.insert("", tk.END, values=(info.path.name, old_sym, new_sym))
+
+        def apply() -> None:
+            errors: list[str] = []
+            for info in infos:
+                try:
+                    import os
+                    os.chmod(info.path, mode)
+                except OSError as e:
+                    errors.append(f"{info.name}: {e}")
+            win.destroy()
+            if errors:
+                messagebox.showerror("chmod Errors", "\n".join(errors), parent=self.root)
+            else:
+                self.status_bar.set_message(
+                    f"chmod {oct(mode)} applied to {len(infos)} item(s)  [Backend: os.chmod]"
+                )
+            self.refresh()
+
+        btn = ttk.Frame(win)
+        btn.pack(fill=tk.X, padx=6, pady=4)
+        ttk.Button(btn, text="Apply", command=apply).pack(side=tk.RIGHT, padx=4)
+        ttk.Button(btn, text="Cancel", command=win.destroy).pack(side=tk.RIGHT)
+
+    def cmd_new_symlink(self) -> None:
+        dlg = CreateSymlinkDialog(self.root, self.current_path)
+        self.root.wait_window(dlg)
+        if dlg.created:
+            self.status_bar.set_message(
+                f"Created symlink: {dlg.created.name}  [Backend: pathlib.Path.symlink_to]"
+            )
+            self.refresh()
+
+    def cmd_preferences(self) -> None:
+        dlg = PreferencesDialog(self.root)
+        self.root.wait_window(dlg)
+
+    def cmd_show_history(self) -> None:
+        history = get_history()
+        win = tk.Toplevel(self.root)
+        win.title("Operation History")
+        win.geometry("700x400")
+        tree = ttk.Treeview(win, columns=("time", "op", "detail"), show="headings")
+        tree.heading("time", text="Time")
+        tree.heading("op", text="Operation")
+        tree.heading("detail", text="Detail")
+        tree.column("time", width=80)
+        tree.column("op", width=80)
+        tree.column("detail", width=480)
+        for entry in history.entries:
+            ts = entry.timestamp.strftime("%H:%M:%S")
+            tree.insert("", tk.END, values=(ts, entry.operation.kind, entry.operation.description))
+        tree.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        btn = ttk.Frame(win)
+        btn.pack(fill=tk.X, padx=6, pady=4)
+
+        def undo_selected() -> None:
+            sel = tree.selection()
+            if not sel:
+                return
+            idx = tree.index(sel[0])
+            if idx < len(history.entries):
+                err = history.entries[idx].undo()
+                if err:
+                    messagebox.showerror("Undo Failed", err, parent=win)
+                else:
+                    self.refresh()
+                    win.destroy()
+
+        ttk.Button(btn, text="Undo selected", command=undo_selected).pack(side=tk.LEFT)
+        ttk.Button(btn, text="Clear history", command=lambda: (history.clear(), win.destroy())).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btn, text="Close", command=win.destroy).pack(side=tk.RIGHT)
+
+    def cmd_open_stdlib_map(self) -> None:
+        self.main_notebook.select(5)
+
+    def build_stdlib_map_tab(self) -> None:
+        frame = ttk.Frame(self.main_notebook)
+        self.main_notebook.add(frame, text="Stdlib Map")
+        text = tk.Text(frame, wrap=tk.WORD, padx=10, pady=8)
+        sb = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=text.yview)
+        text.configure(yscrollcommand=sb.set)
+        text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        sb.pack(side=tk.RIGHT, fill=tk.Y)
+        content = """pathlib_gui — Stdlib Module Coverage Map
+
+FILESYSTEM & PATHS
+  pathlib        Path objects — core abstraction for all file operations
+  os             scandir, walk, stat, access, startfile (Windows open)
+  os.path        legacy path operations
+  stat           file mode decoding, filemode(), S_IMODE()
+  shutil         copy2, copytree, move, rmtree, disk_usage, make_archive
+  tempfile       scratch workspace for previews and archive extractions
+  fnmatch        glob-style filename matching (search)
+  glob           filesystem pattern matching
+
+COMPARISON
+  difflib        unified_diff, context_diff, ndiff, HtmlDiff, SequenceMatcher
+  filecmp        dircmp, cmp — directory and file comparison
+  hashlib        MD5, SHA-1, SHA-256, SHA-512, BLAKE2b, BLAKE2s
+
+ARCHIVES & COMPRESSION
+  zipfile        ZIP archive read/write, testzip(), ZipFile.infolist()
+  tarfile        TAR/GZ/BZ2/XZ archive read/write, getmembers()
+  gzip           .gz single-file compression/decompression
+  bz2            .bz2 single-file compression/decompression
+  lzma           .xz single-file compression/decompression
+  zlib           compression backend (used by zipfile)
+
+METADATA & CONTENT INSPECTION
+  mimetypes      guess_type() — MIME type and encoding detection
+  wave           WAV audio container metadata (channels, rate, frames) — no playback
+  csv            Sniffer, reader, delimiter detection
+  json           loads, dumps, pretty-print, validation
+  tomllib        TOML parse (Python 3.11+, read-only)
+  configparser   INI/cfg/conf file sections and keys
+  plistlib       Apple property list files (binary and XML)
+  sqlite3        read-only database inspection, schema view, SELECT queries
+  xml.etree.ElementTree  XML/XHTML/SVG tree view and parse error display
+  email          .eml message parsing (headers + body)
+  mailbox        .mbox mailbox files — message listing and body preview
+  tokenize       encoding detection for text files
+  codecs         text encoding support
+  unicodedata    character information
+
+PERMISSIONS & OWNERSHIP
+  stat           S_IRUSR/IWUSR/IXUSR etc. — permission bit constants
+  os             chmod, lstat, access
+  pwd            Unix: owner name lookup (not available on Windows)
+  grp            Unix: group name lookup (not available on Windows)
+
+GUI TOOLKIT
+  tkinter        application window, all widgets
+  tkinter.ttk    themed Treeview, Notebook, PanedWindow, Progressbar
+  tkinter.filedialog    file and folder pickers
+  tkinter.messagebox   confirmation and error dialogs
+  tkinter.simpledialog text input prompts
+  tkinter.PhotoImage   image preview (GIF, PPM, PNG)
+
+CONCURRENCY & APP PLUMBING
+  threading      background hash, search, duplicate scanning, copy/move
+  queue          thread-safe result streaming to main thread
+  logging        operation logging
+  argparse       CLI interface
+  dataclasses    operation, result, and history models
+  re             regex search and batch rename
+  json           preferences storage (~/.pathlib_gui/config.json)
+  datetime       timestamp formatting and date-range search
+  atexit         (planned) cleanup of temporary workspaces
+"""
+        text.insert("1.0", content)
+        text.configure(state=tk.DISABLED)
+
     def show_about(self) -> None:
         messagebox.showinfo(
             "About pathlib_gui",
             "pathlib_gui — A Tkinter GUI for Python's filesystem standard library.\n\n"
             "Surfaces: pathlib, shutil, os, stat, mimetypes, hashlib, difflib, filecmp,\n"
             "zipfile, tarfile, gzip, bz2, lzma, wave, csv, json, tomllib, sqlite3,\n"
-            "xml.etree.ElementTree, tokenize, and more.\n\n"
+            "xml.etree.ElementTree, plistlib, configparser, mailbox, email, and more.\n\n"
             "Core depends only on the Python standard library.",
             parent=self.root,
         )
-
-    def show_stdlib_map(self) -> None:
-        win = tk.Toplevel(self.root)
-        win.title("Stdlib Module Map")
-        win.geometry("500x480")
-        text = tk.Text(win, wrap=tk.WORD, padx=8, pady=8)
-        text.pack(fill=tk.BOTH, expand=True)
-        content = """pathlib_gui Stdlib Module Coverage
-
-Filesystem & Paths
-  pathlib        — Path objects, core abstraction
-  os             — scandir, walk, stat, access, startfile
-  os.path        — legacy path operations
-  stat           — file mode decoding, filemode()
-  shutil         — copy2, copytree, move, rmtree, disk_usage, make_archive
-  tempfile       — scratch workspace for previews and extractions
-  fnmatch        — glob-style filename matching
-  glob           — filesystem pattern matching
-
-Comparison
-  difflib        — unified_diff, context_diff, ndiff, HtmlDiff, SequenceMatcher
-  filecmp        — dircmp, cmp
-  hashlib        — MD5, SHA-1, SHA-256, SHA-512, BLAKE2b, BLAKE2s
-
-Archives & Compression
-  zipfile        — ZIP archive read/write, testzip()
-  tarfile        — TAR/GZ/BZ2/XZ archive read/write
-  gzip           — .gz single-file compression
-  bz2            — .bz2 single-file compression
-  lzma           — .xz single-file compression
-  zlib           — compression backend
-
-Metadata & Content Inspection
-  mimetypes      — MIME type guessing
-  wave           — WAV audio container metadata (no playback)
-  csv            — Sniffer, reader, delimiter detection
-  json           — loads, dumps, pretty-print
-  tomllib        — TOML parse (Python 3.11+)
-  configparser   — INI/config files
-  sqlite3        — read-only database inspection, SELECT queries
-  xml.etree.ElementTree  — XML tree view and parse
-  tokenize       — encoding detection
-  codecs         — text encoding support
-
-GUI Toolkit
-  tkinter        — application window and all widgets
-  tkinter.ttk    — themed Treeview, Notebook, PanedWindow, etc.
-  tkinter.filedialog  — file/folder pickers
-  tkinter.messagebox  — confirmation and error dialogs
-  tkinter.simpledialog — text input prompts
-  tkinter.PhotoImage  — image preview (GIF, PPM, PNG)
-
-Concurrency & Plumbing
-  threading      — background hash, search, duplicate scanning
-  queue          — thread-safe result streaming to main thread
-  logging        — operation logging
-  argparse       — CLI interface
-  dataclasses    — operation and result models
-  re             — regex search and batch rename
-"""
-        text.insert("1.0", content)
-        text.configure(state=tk.DISABLED)
 
 
 def run_app(initial_path: Path | None = None) -> None:

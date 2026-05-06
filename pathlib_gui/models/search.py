@@ -21,6 +21,13 @@ class SearchQuery:
     find_broken_symlinks: bool = False
     find_duplicates: bool = False
     follow_symlinks: bool = False
+    # date range (Unix timestamps; 0 = not set)
+    modified_after: float = 0.0
+    modified_before: float = 0.0
+    # file-type filter: "any", "file", "directory", "symlink"
+    file_type: str = "any"
+    # MIME type substring filter
+    mime_contains: str = ""
 
 
 @dataclass
