@@ -30,8 +30,9 @@ class Preferences:
         if _CONFIG_PATH.exists():
             try:
                 saved = json.loads(_CONFIG_PATH.read_text(encoding="utf-8"))
-                self._data.update(saved)
-            except Exception:
+                if isinstance(saved, dict):
+                    self._data.update(saved)
+            except (OSError, json.JSONDecodeError):
                 pass
 
     def save(self) -> None:
@@ -45,7 +46,7 @@ class Preferences:
         self._data[key] = value
 
     def add_recent(self, path: Path) -> None:
-        recent: list[str] = list(self._data.get("recent_paths", []))  # type: ignore[arg-type]
+        recent = self._recent_path_strings()
         s = str(path)
         if s in recent:
             recent.remove(s)
@@ -53,14 +54,20 @@ class Preferences:
         self._data["recent_paths"] = recent[:20]
 
     def recent_paths(self) -> list[Path]:
-        return [Path(s) for s in self._data.get("recent_paths", [])]  # type: ignore[union-attr]
+        return [Path(s) for s in self._recent_path_strings()]
+
+    def _recent_path_strings(self) -> list[str]:
+        recent_paths = self._data.get("recent_paths", [])
+        if not isinstance(recent_paths, list):
+            return []
+        return [item for item in recent_paths if isinstance(item, str)]
 
 
-_prefs: Preferences | None = None
+_PREFS: Preferences | None = None
 
 
 def get_prefs() -> Preferences:
-    global _prefs
-    if _prefs is None:
-        _prefs = Preferences()
-    return _prefs
+    global _PREFS
+    if _PREFS is None:
+        _PREFS = Preferences()
+    return _PREFS

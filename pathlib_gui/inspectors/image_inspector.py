@@ -5,6 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
+from typing import Any
 
 from pathlib_gui.inspectors.base import BaseInspector
 
@@ -14,7 +15,7 @@ SUPPORTED = {".gif", ".ppm", ".pgm", ".pbm", ".png"}
 class ImageInspector(BaseInspector):
     label = "Image"
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.photo: tk.PhotoImage | None = None
         self.build_widgets()
@@ -38,7 +39,7 @@ class ImageInspector(BaseInspector):
         try:
             self.photo = tk.PhotoImage(file=str(path))
             w, h = self.photo.width(), self.photo.height()
-            self.info_label.configure(text=f"{w} × {h} px  |  {path.stat().st_size:,} bytes")
+            self.info_label.configure(text=f"{w} x {h} px  |  {path.stat().st_size:,} bytes")
             self.canvas.create_image(0, 0, anchor="nw", image=self.photo)
             self.canvas.configure(scrollregion=(0, 0, w, h))
         except tk.TclError as e:

@@ -5,7 +5,6 @@ from __future__ import annotations
 import queue
 from pathlib import Path
 
-
 from pathlib_gui.services.hash_service import BatchHashWorker, find_duplicates, full_hash, partial_hash
 
 
@@ -141,15 +140,18 @@ class TestBatchHashWorker:
         worker.start()
         worker.thread.join(timeout=5)
 
-        results = []
+        results: list[tuple[Path, str]] = []
         while True:
             item = q.get(timeout=2)
             if item is BatchHashWorker.DONE:
                 break
-            results.append(item)
+            if isinstance(item, tuple) and len(item) == 2:
+                path, digest = item
+                if isinstance(path, Path) and isinstance(digest, str):
+                    results.append((path, digest))
 
         assert len(results) == 3
-        for path, digest in results:
+        for _path, digest in results:
             assert isinstance(digest, str)
             assert len(digest) == 64
 

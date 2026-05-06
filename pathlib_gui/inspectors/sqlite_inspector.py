@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import sqlite3
 import tkinter as tk
+from collections.abc import Callable
 from pathlib import Path
 from tkinter import messagebox, ttk
+from typing import Any, cast
 
 from pathlib_gui.inspectors.base import BaseInspector
 
@@ -15,7 +17,7 @@ MAX_PREVIEW_ROWS = 200
 class SqliteInspector(BaseInspector):
     label = "SQLite"
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.db_path: Path | None = None
         self.build_widgets()
@@ -88,8 +90,9 @@ class SqliteInspector(BaseInspector):
             self.table_list.selection_set(0)
             self.load_table(tables[0])
 
-    def on_table_select(self, event: tk.Event) -> None:  # type: ignore[type-arg]
-        sel = self.table_list.curselection()
+    def on_table_select(self, event: tk.Event) -> None:
+        curselection = cast(Callable[[], tuple[int, ...]], self.table_list.curselection)
+        sel = curselection()
         if sel:
             self.load_table(self.table_list.get(sel[0]))
 

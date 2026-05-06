@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pathlib_gui.models.archive import ArchiveMember
+from pathlib_gui.models.compare import DiffResult
 from pathlib_gui.models.paths import PathInfo
 
 
@@ -17,14 +19,14 @@ def compare_files(
     right: Path,
     ignore_whitespace: bool = False,
     ignore_case: bool = False,
-):
+) -> DiffResult:
     """Return a DiffResult for two text files.  Backend: difflib."""
     from pathlib_gui.services.diff_service import diff_files
 
     return diff_files(left, right, ignore_whitespace=ignore_whitespace, ignore_case=ignore_case)
 
 
-def list_archive(path: Path):
+def list_archive(path: Path) -> list[ArchiveMember]:
     """Return a list of ArchiveMember objects for a ZIP or TAR archive."""
     from pathlib_gui.services.archive_service import list_members
 

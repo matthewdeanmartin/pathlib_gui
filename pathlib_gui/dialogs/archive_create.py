@@ -5,13 +5,16 @@ from __future__ import annotations
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, ttk
+from typing import cast
 
-from pathlib_gui.services.archive_service import ARCHIVE_PRESETS
+from pathlib_gui.services.archive_service import ARCHIVE_PRESETS, ArchiveCompression, ArchiveFormat
 
 
-def show_create_archive_dialog(parent: tk.Widget, sources: list[Path]) -> tuple[Path, str, object] | None:
+def show_create_archive_dialog(
+    parent: tk.Misc, sources: list[Path]
+) -> tuple[Path, ArchiveFormat, ArchiveCompression] | None:
     """Show archive creation dialog. Returns (dest_path, preset_label, compression) or None."""
-    result: list[tuple[Path, str, object]] = []
+    result: list[tuple[Path, ArchiveFormat, ArchiveCompression]] = []
 
     win = tk.Toplevel(parent)
     win.title("Create Archive")
@@ -67,7 +70,7 @@ def show_create_archive_dialog(parent: tk.Widget, sources: list[Path]) -> tuple[
         selected = preset_var.get()
         for label, fmt, compression in ARCHIVE_PRESETS:
             if label == selected:
-                result.append((Path(dest_str), fmt, compression))
+                result.append((Path(dest_str), cast(ArchiveFormat, fmt), cast(ArchiveCompression, compression)))
                 break
         win.destroy()
 

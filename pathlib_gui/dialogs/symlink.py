@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+from contextlib import suppress
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
@@ -10,7 +11,7 @@ from tkinter import filedialog, messagebox, ttk
 class CreateSymlinkDialog(tk.Toplevel):
     """Dialog to create a symbolic link."""
 
-    def __init__(self, parent: tk.Widget, cwd: Path) -> None:
+    def __init__(self, parent: tk.Misc, cwd: Path) -> None:
         super().__init__(parent)
         self.title("Create Symlink")
         self.resizable(False, False)
@@ -58,10 +59,8 @@ class CreateSymlinkDialog(tk.Toplevel):
         link = self.cwd / name
         target = Path(target_str)
         if self.relative_var.get():
-            try:
+            with suppress(ValueError):
                 target = target.relative_to(self.cwd)
-            except ValueError:
-                pass
         try:
             link.symlink_to(target)
             self.created = link

@@ -5,23 +5,31 @@
 ```bash
 git clone https://github.com/matthewdeanmartin/pathlib_gui.git
 cd pathlib_gui
-uv sync
+uv sync --all-extras
 ```
 
-## Running checks
+## Run the quality checks
 
 ```bash
-make check
+uv run make lint
+uv run make typecheck
+uv run make test
+uv run make security
 ```
 
-## Running tests only
+Or run the combined gate:
 
 ```bash
-make test
+uv run make check
 ```
 
-## Before submitting a PR
+## Helpful targets
 
 ```bash
-make prerelease
+uv run make help
+uv run make dead-code
 ```
+
+## Before opening a pull request
+
+Make sure the relevant checks pass for your change and update the documentation when behavior changes.

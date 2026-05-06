@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 from pathlib_gui.models.paths import PathInfo, format_size, list_directory
 
 
@@ -102,6 +101,8 @@ class TestPathInfoPermissionsString:
             is_symlink=False,
             mime_type="",
             exists=False,
+            owner="",
+            group="",
         )
         result = info.permissions_string()
         assert len(result) == 10

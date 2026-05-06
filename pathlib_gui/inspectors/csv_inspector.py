@@ -5,8 +5,10 @@ from __future__ import annotations
 import csv
 import io
 import tkinter as tk
+from contextlib import suppress
 from pathlib import Path
 from tkinter import ttk
+from typing import Any
 
 from pathlib_gui.inspectors.base import BaseInspector
 
@@ -17,7 +19,7 @@ MAX_BYTES = 256 * 1024
 class CsvInspector(BaseInspector):
     label = "CSV"
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.build_widgets()
 
@@ -50,10 +52,8 @@ class CsvInspector(BaseInspector):
             dialect = csv.excel
 
         has_header = False
-        try:
+        with suppress(csv.Error):
             has_header = csv.Sniffer().has_header(text[:4096])
-        except csv.Error:
-            pass
 
         reader = csv.reader(io.StringIO(text), dialect)
         rows: list[list[str]] = []

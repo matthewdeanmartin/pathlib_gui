@@ -7,6 +7,7 @@ import stat
 import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
+from typing import Any
 
 BITS = [
     ("Owner read", stat.S_IRUSR, 0),
@@ -24,7 +25,7 @@ BITS = [
 class PermissionsEditor(ttk.Frame):
     """Displays and edits POSIX-style permissions."""
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.path: Path | None = None
         self.current_mode: int = 0
@@ -62,7 +63,7 @@ class PermissionsEditor(ttk.Frame):
         for row_i, group in enumerate(groups):
             ttk.Label(grid, text=group).grid(row=row_i + 1, column=0, sticky="e", padx=6)
             for col_i in range(3):
-                _, bit_mask, _ = BITS[bit_index]
+                _, _bit_mask, _ = BITS[bit_index]
                 var = tk.BooleanVar()
                 self.bit_vars.append(var)
                 ttk.Checkbutton(
@@ -102,7 +103,7 @@ class PermissionsEditor(ttk.Frame):
         self.symbolic_var.set(stat.filemode(mode))
         self.octal_var.set(oct(mode))
 
-    def apply_octal_input(self, event: tk.Event) -> None:  # type: ignore[type-arg]
+    def apply_octal_input(self, event: tk.Event) -> None:
         raw = self.octal_var.get().strip()
         try:
             mode = int(raw, 8)
@@ -157,7 +158,7 @@ class PermissionsEditor(ttk.Frame):
         sb.pack(side=tk.LEFT, fill=tk.Y, pady=4, padx=(0, 8))
 
         assert self.path is not None
-        candidates = [self.path] + list(self.path.rglob("*"))
+        candidates = [self.path, *list(self.path.rglob("*"))]
         for p in candidates[:500]:
             try:
                 old_mode = stat.S_IMODE(p.lstat().st_mode)

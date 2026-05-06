@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import datetime
 import tkinter as tk
+from collections.abc import Callable
 from pathlib import Path
 from tkinter import ttk
-from collections.abc import Callable
+from typing import Any
 
 from pathlib_gui.models.paths import PathInfo, format_size, list_directory
 
@@ -38,11 +39,11 @@ class FileTable(ttk.Frame):
 
     def __init__(
         self,
-        parent: tk.Widget,
+        parent: tk.Misc,
         on_select: Callable[[list[PathInfo]], None] | None = None,
         on_open: Callable[[PathInfo], None] | None = None,
         show_hidden: bool = False,
-        **kwargs: object,
+        **kwargs: Any,
     ) -> None:
         super().__init__(parent, **kwargs)
         self.on_select = on_select
@@ -66,11 +67,7 @@ class FileTable(ttk.Frame):
         self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
 
         for col in COLUMNS:
-            self.tree.heading(
-                col,
-                text=COLUMN_HEADINGS[col],
-                command=lambda c=col: self.sort_by(c),
-            )
+            self.tree.heading(col, text=COLUMN_HEADINGS[col], command=self._sort_command(col))
             self.tree.column(col, width=COLUMN_WIDTHS[col], minwidth=40)
 
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -107,7 +104,7 @@ class FileTable(ttk.Frame):
             if info.is_broken_symlink:
                 icon = "🔗"
                 kind = info.kind_label() + " → broken"
-                tags = ("broken_symlink",)
+                tags: tuple[str, ...] = ("broken_symlink",)
             elif info.is_symlink:
                 icon = "🔗"
                 kind = info.kind_label()
@@ -143,32 +140,38 @@ class FileTable(ttk.Frame):
         self.apply_sort()
         self.refresh_tree()
 
+    def _sort_command(self, column: str) -> Callable[[], None]:
+        return lambda: self.sort_by(column)
+
     def apply_sort(self) -> None:
-        key_funcs = {
-            "name": lambda e: (not e.is_dir, e.name.lower()),
-            "size": lambda e: (not e.is_dir, e.size),
-            "type": lambda e: (not e.is_dir, e.kind_label().lower()),
-            "modified": lambda e: (not e.is_dir, e.modified),
-            "permissions": lambda e: (not e.is_dir, e.mode),
-        }
-        key = key_funcs.get(self.sort_column, key_funcs["name"])
-        self.entries.sort(key=key, reverse=self.sort_reverse)
+        if self.sort_column == "size":
+            self.entries.sort(key=lambda entry: (not entry.is_dir, entry.size), reverse=self.sort_reverse)
+        elif self.sort_column == "type":
+            self.entries.sort(
+                key=lambda entry: (not entry.is_dir, entry.kind_label().lower()), reverse=self.sort_reverse
+            )
+        elif self.sort_column == "modified":
+            self.entries.sort(key=lambda entry: (not entry.is_dir, entry.modified), reverse=self.sort_reverse)
+        elif self.sort_column == "permissions":
+            self.entries.sort(key=lambda entry: (not entry.is_dir, entry.mode), reverse=self.sort_reverse)
+        else:
+            self.entries.sort(key=lambda entry: (not entry.is_dir, entry.name.lower()), reverse=self.sort_reverse)
 
     def selected_infos(self) -> list[PathInfo]:
         selected_ids = self.tree.selection()
         by_path = {str(e.path): e for e in self.entries}
         return [by_path[iid] for iid in selected_ids if iid in by_path]
 
-    def handle_selection(self, event: tk.Event) -> None:  # type: ignore[type-arg]
+    def handle_selection(self, event: tk.Event) -> None:
         if self.on_select:
             self.on_select(self.selected_infos())
 
-    def handle_double_click(self, event: tk.Event) -> None:  # type: ignore[type-arg]
+    def handle_double_click(self, event: tk.Event) -> None:
         infos = self.selected_infos()
         if infos and self.on_open:
             self.on_open(infos[0])
 
-    def show_context_menu(self, event: tk.Event) -> None:  # type: ignore[type-arg]
+    def show_context_menu(self, event: tk.Event) -> None:
         item = self.tree.identify_row(event.y)
         if item:
             self.tree.selection_set(item)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import queue
 import threading
+from contextlib import suppress
 from pathlib import Path
 
 
@@ -35,10 +36,8 @@ def find_duplicates(paths: list[Path]) -> list[list[Path]]:
 
     by_size: dict[int, list[Path]] = defaultdict(list)
     for p in paths:
-        try:
+        with suppress(OSError):
             by_size[p.stat().st_size].append(p)
-        except OSError:
-            pass
 
     candidates = [group for group in by_size.values() if len(group) > 1]
 

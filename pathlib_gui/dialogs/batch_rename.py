@@ -61,7 +61,7 @@ def apply_rename_mode(name: str, mode: str, params: dict[str, str]) -> str:
 class BatchRenameDialog(tk.Toplevel):
     """Batch rename dialog with live preview table and conflict detection."""
 
-    def __init__(self, parent: tk.Widget, paths: list[Path]) -> None:
+    def __init__(self, parent: tk.Misc, paths: list[Path]) -> None:
         super().__init__(parent)
         self.paths = paths
         self.confirmed = False
@@ -178,7 +178,7 @@ class BatchRenameDialog(tk.Toplevel):
             seen[name] = seen.get(name, 0) + 1
         conflicts = {name for name, count in seen.items() if count > 1}
 
-        for p, new_name in zip(self.paths, computed):
+        for p, new_name in zip(self.paths, computed, strict=True):
             changed = new_name != p.name
             conflict = new_name in conflicts and changed
             exists = (p.parent / new_name).exists() and changed

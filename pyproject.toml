@@ -21,6 +21,10 @@ classifiers = [
 ]
 dependencies = []
 
+[project.optional-dependencies]
+xml = ["defusedxml>=0.7.1"]
+trash = ["send2trash>=1.8.3"]
+
 [project.urls]
 Repository = "https://github.com/matthewdeanmartin/pathlib_gui"
 Documentation = "https://pathlib-gui.readthedocs.io/en/latest/"

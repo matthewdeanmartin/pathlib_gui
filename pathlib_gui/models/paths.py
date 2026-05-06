@@ -104,11 +104,12 @@ class PathInfo:
     def size_human(self) -> str:
         if self.is_dir:
             return ""
+        size = float(self.size)
         for unit in ("B", "KB", "MB", "GB", "TB"):
-            if self.size < 1024:
-                return f"{self.size:.1f} {unit}"
-            self.size /= 1024
-        return f"{self.size:.1f} PB"
+            if size < 1024:
+                return f"{size:.1f} {unit}"
+            size /= 1024
+        return f"{size:.1f} PB"
 
     def kind_label(self) -> str:
         if self.is_symlink:

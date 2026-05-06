@@ -6,6 +6,7 @@ import plistlib
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
+from typing import Any
 
 from pathlib_gui.inspectors.base import BaseInspector
 
@@ -30,7 +31,7 @@ def _render(obj: object, indent: int = 0) -> str:
 class PlistInspector(BaseInspector):
     label = "Plist"
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         ttk.Label(self, text="Backend: plistlib.load", foreground="gray").pack(anchor="w", padx=4, pady=2)
         self.text = tk.Text(self, wrap=tk.WORD, state=tk.DISABLED, relief=tk.FLAT, font=("Courier", 10))

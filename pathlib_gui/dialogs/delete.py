@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import tkinter as tk
+from contextlib import suppress
 from pathlib import Path
 from tkinter import messagebox
-
 
 
 def count_contents(path: Path) -> tuple[int, int, int]:
@@ -15,10 +15,8 @@ def count_contents(path: Path) -> tuple[int, int, int]:
         for p in path.rglob("*"):
             if p.is_file():
                 files += 1
-                try:
+                with suppress(OSError):
                     total += p.stat().st_size
-                except OSError:
-                    pass
             elif p.is_dir():
                 folders += 1
     except PermissionError:
@@ -34,7 +32,7 @@ def format_bytes(n: int) -> str:
     return f"{n:.1f} PB"
 
 
-def confirm_delete(parent: tk.Widget, paths: list[Path]) -> bool:
+def confirm_delete(parent: tk.Misc, paths: list[Path]) -> bool:
     """Show delete confirmation. Returns True if user confirms permanent delete."""
     lines: list[str] = ["You are about to permanently delete:\n"]
 
@@ -60,7 +58,7 @@ def confirm_delete(parent: tk.Widget, paths: list[Path]) -> bool:
     )
 
 
-def confirm_trash(parent: tk.Widget, paths: list[Path]) -> bool:
+def confirm_trash(parent: tk.Misc, paths: list[Path]) -> bool:
     """Show move-to-trash confirmation."""
     names = "\n".join(f"  {p.name}" for p in paths[:5])
     if len(paths) > 5:

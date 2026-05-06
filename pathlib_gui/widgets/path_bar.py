@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import tkinter as tk
+from collections.abc import Callable
+from contextlib import suppress
+from functools import partial
 from pathlib import Path
 from tkinter import ttk
-from collections.abc import Callable
+from typing import Any
 
 
 class PathBar(ttk.Frame):
     """Editable path bar with clickable breadcrumb buttons above the text entry."""
 
-    def __init__(self, parent: tk.Widget, on_navigate: Callable[[Path], None], **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, on_navigate: Callable[[Path], None], **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.on_navigate = on_navigate
 
@@ -36,24 +39,22 @@ class PathBar(ttk.Frame):
         for i, part in enumerate(parts):
             if i > 0:
                 cumulative = cumulative / part
-            label = part if part not in ("/", "\\") else part
+            label = part
             btn_path = cumulative  # capture for closure
             btn = ttk.Button(
                 self.crumb_frame,
                 text=label,
-                command=lambda p=btn_path: self.on_navigate(p),
+                command=partial(self.on_navigate, btn_path),
                 style="Crumb.TButton",
             )
             btn.pack(side=tk.LEFT, padx=0, pady=0)
             if i < len(parts) - 1:
-                ttk.Label(self.crumb_frame, text="›").pack(side=tk.LEFT)
+                ttk.Label(self.crumb_frame, text=">").pack(side=tk.LEFT)
 
-        try:
+        with suppress(tk.TclError):
             self.crumb_frame.tk.call("ttk::style", "configure", "Crumb.TButton", "-padding", "2 0")
-        except Exception:
-            pass
 
-    def handle_entry_return(self, event: tk.Event) -> None:  # type: ignore[type-arg]
+    def handle_entry_return(self, event: tk.Event) -> None:
         text = self.path_var.get().strip()
         p = Path(text)
         if p.exists():

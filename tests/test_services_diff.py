@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from pathlib_gui.services.diff_service import diff_files, html_diff, similarity_ratio
 
 
@@ -123,6 +125,3 @@ class TestSimilarityRatio:
         b.write_text("line1\nlineX\nline3\n")
         ratio = similarity_ratio(a, b)
         assert 0.0 < ratio < 1.0
-
-
-import pytest

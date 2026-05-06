@@ -5,6 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from dataclasses import dataclass
 from tkinter import ttk
+from typing import Any, cast
 
 
 @dataclass
@@ -19,7 +20,7 @@ class OperationEntry:
 class OperationQueueView(ttk.Frame):
     """Shows running/completed operations with progress bars."""
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.entries: list[OperationEntry] = []
         self.rows: list[dict[str, tk.Widget]] = []
@@ -43,10 +44,10 @@ class OperationQueueView(ttk.Frame):
         self.inner.bind("<Configure>", self.on_inner_configure)
         self.canvas.bind("<Configure>", self.on_canvas_configure)
 
-    def on_inner_configure(self, event: tk.Event) -> None:  # type: ignore[type-arg]
+    def on_inner_configure(self, event: tk.Event) -> None:
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
-    def on_canvas_configure(self, event: tk.Event) -> None:  # type: ignore[type-arg]
+    def on_canvas_configure(self, event: tk.Event) -> None:
         self.canvas.itemconfigure(self.canvas_window, width=event.width)
 
     def add_operation(self, entry: OperationEntry) -> int:
@@ -70,9 +71,9 @@ class OperationQueueView(ttk.Frame):
         if status:
             entry.status = status
         row = self.rows[idx]
-        bar: ttk.Progressbar = row["bar"]  # type: ignore[assignment]
+        bar = cast(ttk.Progressbar, row["bar"])
         bar.configure(maximum=max(entry.total, 1), value=done)
-        status_lbl: ttk.Label = row["status"]  # type: ignore[assignment]
+        status_lbl = cast(ttk.Label, row["status"])
         status_lbl.configure(text=entry.status)
 
     def mark_done(self, idx: int, error: str = "") -> None:
@@ -80,20 +81,20 @@ class OperationQueueView(ttk.Frame):
         entry.status = f"Error: {error}" if error else "Done"
         entry.error = error
         row = self.rows[idx]
-        bar: ttk.Progressbar = row["bar"]  # type: ignore[assignment]
+        bar = cast(ttk.Progressbar, row["bar"])
         bar.configure(value=entry.total or 1)
-        status_lbl: ttk.Label = row["status"]  # type: ignore[assignment]
+        status_lbl = cast(ttk.Label, row["status"])
         color = "red" if error else "green"
         status_lbl.configure(text=entry.status, foreground=color)
 
     def clear_completed(self) -> None:
         keep_entries: list[OperationEntry] = []
         keep_rows: list[dict[str, tk.Widget]] = []
-        for i, (entry, row) in enumerate(zip(self.entries, self.rows)):
+        for entry, row in zip(self.entries, self.rows, strict=True):
             if entry.status in ("pending", "running"):
                 keep_entries.append(entry)
                 keep_rows.append(row)
             else:
-                row["frame"].destroy()  # type: ignore[union-attr]
+                row["frame"].destroy()
         self.entries = keep_entries
         self.rows = keep_rows

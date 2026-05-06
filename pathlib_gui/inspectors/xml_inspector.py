@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import tkinter as tk
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from tkinter import ttk
+from typing import Any
+
+from defusedxml import ElementTree as ET  # type: ignore[import-untyped]
 
 from pathlib_gui.inspectors.base import BaseInspector
 
@@ -43,14 +45,14 @@ def build_xml_tree(tree: ttk.Treeview, parent: str, element: ET.Element, count: 
 class XmlInspector(BaseInspector):
     label = "XML"
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.build_widgets()
 
     def build_widgets(self) -> None:
         top = ttk.Frame(self)
         top.pack(fill=tk.X, padx=4, pady=2)
-        ttk.Label(top, text="Backend: xml.etree.ElementTree", foreground="gray").pack(side=tk.LEFT)
+        ttk.Label(top, text="Backend: defusedxml.ElementTree", foreground="gray").pack(side=tk.LEFT)
         self.info_label = ttk.Label(top, text="", foreground="gray")
         self.info_label.pack(side=tk.RIGHT)
 

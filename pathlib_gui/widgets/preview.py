@@ -5,6 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
+from typing import Any
 
 from pathlib_gui.inspectors.base import BaseInspector, inspector_for_path
 from pathlib_gui.models.paths import PathInfo
@@ -13,7 +14,7 @@ from pathlib_gui.models.paths import PathInfo
 class PreviewPane(ttk.Frame):
     """A pane that shows a type-appropriate preview for the selected file."""
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.current_inspector: BaseInspector | None = None
         self.current_path: Path | None = None

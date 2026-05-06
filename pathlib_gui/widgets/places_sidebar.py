@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import sys
 import tkinter as tk
+from collections.abc import Callable
 from pathlib import Path
 from tkinter import ttk
-from collections.abc import Callable
+from typing import Any, cast
 
 
 def default_places() -> list[tuple[str, Path]]:
@@ -40,7 +41,7 @@ def default_places() -> list[tuple[str, Path]]:
 class PlacesSidebar(ttk.Frame):
     """Sidebar listing common filesystem places."""
 
-    def __init__(self, parent: tk.Widget, on_navigate: Callable[[Path], None], **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, on_navigate: Callable[[Path], None], **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.on_navigate = on_navigate
         self.places: list[tuple[str, Path]] = []
@@ -61,8 +62,9 @@ class PlacesSidebar(ttk.Frame):
         for label, _ in self.places:
             self.listbox.insert(tk.END, label)
 
-    def handle_selection(self, event: tk.Event) -> None:  # type: ignore[type-arg]
-        sel = self.listbox.curselection()
+    def handle_selection(self, event: tk.Event) -> None:
+        curselection = cast(Callable[[], tuple[int, ...]], self.listbox.curselection)
+        sel = curselection()
         if not sel:
             return
         _, path = self.places[sel[0]]

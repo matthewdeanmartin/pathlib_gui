@@ -5,6 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
+from typing import Any, ClassVar
 
 from pathlib_gui.models.compare import DiffResult, DirCompareResult
 from pathlib_gui.services.diff_service import diff_files, html_diff, similarity_ratio
@@ -13,7 +14,7 @@ from pathlib_gui.services.diff_service import diff_files, html_diff, similarity_
 class DiffView(ttk.Frame):
     """File-vs-file diff widget with side-by-side and unified views."""
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.result: DiffResult | None = None
         self.diff_regions: list[str] = []
@@ -102,7 +103,7 @@ class DiffView(ttk.Frame):
         self.left_text.yview(*args)
         self.right_text.yview(*args)
 
-    def make_scrolled_text(self, parent: tk.Widget) -> tk.Text:
+    def make_scrolled_text(self, parent: tk.Misc) -> tk.Text:
         frame = ttk.Frame(parent)
         frame.pack(fill=tk.BOTH, expand=True)
         text = tk.Text(frame, wrap=tk.NONE, state=tk.DISABLED, relief=tk.FLAT, font=("Courier", 10))
@@ -150,7 +151,6 @@ class DiffView(ttk.Frame):
             widget.configure(state=tk.NORMAL)
             widget.delete("1.0", tk.END)
 
-        line_l = line_r = 1
         for tag, i1, i2, j1, j2 in opcodes:
             if tag == "equal":
                 for line in self.result.left_lines[i1:i2]:
@@ -261,7 +261,7 @@ class DiffView(ttk.Frame):
 class DirCompareView(ttk.Frame):
     """Directory vs directory comparison widget using filecmp.dircmp."""
 
-    CATEGORIES = [
+    CATEGORIES: ClassVar[list[tuple[str, str, str]]] = [
         ("only_left", "Only in Left", "#fff3cd"),
         ("only_right", "Only in Right", "#d4edda"),
         ("diff_files", "Different", "#f8d7da"),
@@ -270,7 +270,7 @@ class DirCompareView(ttk.Frame):
         ("common_dirs", "Common dirs", "#f8f9fa"),
     ]
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.result: DirCompareResult | None = None
         self.left_path: Path | None = None
@@ -294,7 +294,7 @@ class DirCompareView(ttk.Frame):
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         vsb.pack(side=tk.RIGHT, fill=tk.Y)
 
-        for attr, label, bg in self.CATEGORIES:
+        for attr, _label, bg in self.CATEGORIES:
             self.tree.tag_configure(attr, background=bg)
 
         action_frame = ttk.Frame(self)

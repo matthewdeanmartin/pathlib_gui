@@ -7,8 +7,13 @@ import tarfile
 import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
+from typing import Literal
 
 from pathlib_gui.models.archive import ArchiveMember
+
+ArchiveFormat = Literal["zip", "tar", "tar.gz", "tar.bz2", "tar.xz", "gz", "bz2", "xz"]
+ArchiveCompression = int | Literal["", "gz", "bz2", "xz"]
+TarWriteMode = Literal["w", "w:gz", "w:bz2", "w:xz"]
 
 
 def is_zip(path: Path) -> bool:
@@ -197,12 +202,12 @@ def create_zip(sources: list[Path], dest: Path, compression: int = zipfile.ZIP_D
         for src in sources:
             if src.is_dir():
                 for f in src.rglob("*"):
-                    zf.write(f, f.relative_to(src.parent))
+                    zf.write(str(f), str(f.relative_to(src.parent)))
             else:
-                zf.write(src, src.name)
+                zf.write(str(src), src.name)
 
 
-def create_tar(sources: list[Path], dest: Path, mode: str = "w:gz") -> None:
+def create_tar(sources: list[Path], dest: Path, mode: TarWriteMode = "w:gz") -> None:
     with tarfile.open(str(dest), mode) as tf:
         for src in sources:
             tf.add(src, arcname=src.name)

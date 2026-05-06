@@ -6,6 +6,7 @@ import tkinter as tk
 import wave
 from pathlib import Path
 from tkinter import ttk
+from typing import Any
 
 from pathlib_gui.inspectors.base import BaseInspector
 
@@ -13,7 +14,7 @@ from pathlib_gui.inspectors.base import BaseInspector
 class WaveInspector(BaseInspector):
     label = "WAV"
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.build_widgets()
 

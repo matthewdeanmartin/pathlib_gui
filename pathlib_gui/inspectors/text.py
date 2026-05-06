@@ -5,6 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
+from typing import Any, Literal
 
 from pathlib_gui.inspectors.base import BaseInspector
 
@@ -25,7 +26,7 @@ def detect_encoding(path: Path) -> str:
 class TextInspector(BaseInspector):
     label = "Text"
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.path: Path | None = None
         self.show_line_numbers = tk.BooleanVar(value=True)
@@ -127,7 +128,7 @@ class TextInspector(BaseInspector):
         self.line_text.configure(state=tk.DISABLED)
 
     def toggle_wrap(self) -> None:
-        mode = tk.WORD if self.wrap_var.get() else tk.NONE
+        mode: Literal["word", "none"] = "word" if self.wrap_var.get() else "none"
         self.main_text.configure(wrap=mode)
 
     def find_next(self) -> None:

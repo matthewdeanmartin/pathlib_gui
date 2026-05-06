@@ -7,6 +7,7 @@ import mimetypes
 import queue
 import re
 import threading
+from contextlib import suppress
 from pathlib import Path
 
 from pathlib_gui.models.search import SearchQuery, SearchResult
@@ -33,10 +34,8 @@ class SearchWorker:
         q = self.query
         regex: re.Pattern[str] | None = None
         if q.regex_pattern:
-            try:
+            with suppress(re.error):
                 regex = re.compile(q.regex_pattern)
-            except re.error:
-                pass
 
         try:
             for path in q.root.rglob("*"):

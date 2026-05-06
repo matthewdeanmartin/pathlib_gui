@@ -8,8 +8,10 @@ import queue
 import stat
 import threading
 import tkinter as tk
+from contextlib import suppress
 from pathlib import Path
 from tkinter import ttk
+from typing import Any, ClassVar
 
 from pathlib_gui.models.paths import PathInfo, format_size
 
@@ -17,7 +19,7 @@ from pathlib_gui.models.paths import PathInfo, format_size
 class InspectorPane(ttk.Frame):
     """Right-hand pane showing Path metadata, pathlib expressions, hashes, preview, and permissions."""
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.current_info: PathInfo | None = None
         self.build_widgets()
@@ -68,7 +70,7 @@ class InspectorPane(ttk.Frame):
 class ScrolledText(ttk.Frame):
     """A read-only Text widget with a scrollbar."""
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.text = tk.Text(self, wrap=tk.WORD, state=tk.DISABLED, relief=tk.FLAT)
         sb = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.text.yview)
@@ -86,7 +88,7 @@ class ScrolledText(ttk.Frame):
 class MetadataTab(ttk.Frame):
     """General filesystem metadata display."""
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.display = ScrolledText(self)
         self.display.pack(fill=tk.BOTH, expand=True)
@@ -139,7 +141,7 @@ class PathlibTab(ttk.Frame):
 
     BACKEND_NOTE = "Backend: pathlib.Path"
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         ttk.Label(self, text=self.BACKEND_NOTE, foreground="gray").pack(anchor="w", padx=4, pady=2)
         self.display = ScrolledText(self)
@@ -172,14 +174,10 @@ class PathlibTab(ttk.Frame):
             row(".stat().st_mode", oct(p.stat().st_mode))
         except OSError as e:
             row(".stat()", f"OSError: {e}")
-        try:
+        with suppress(OSError):
             row(".resolve()", str(p.resolve()))
-        except OSError:
-            pass
-        try:
+        with suppress(OSError):
             row(".absolute()", str(p.absolute()))
-        except OSError:
-            pass
 
         self.display.set_content("\n".join(lines))
 
@@ -190,7 +188,7 @@ class PathlibTab(ttk.Frame):
 class HashTab(ttk.Frame):
     """On-demand hash calculation using hashlib — runs in background thread."""
 
-    ALGORITHMS = [
+    ALGORITHMS: ClassVar[list[tuple[str, str]]] = [
         ("MD5 (non-cryptographic)", "md5"),
         ("SHA-1 (non-cryptographic)", "sha1"),
         ("SHA-256", "sha256"),
@@ -199,7 +197,7 @@ class HashTab(ttk.Frame):
         ("BLAKE2s", "blake2s"),
     ]
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.current_path: Path | None = None
         self.result_queue: queue.Queue[str] = queue.Queue()

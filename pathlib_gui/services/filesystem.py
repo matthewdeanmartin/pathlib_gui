@@ -5,9 +5,10 @@ from __future__ import annotations
 import os
 import queue
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import sys
 import threading
+from collections import namedtuple
 from pathlib import Path
 
 from pathlib_gui.models.operations import FileOperation
@@ -158,8 +159,8 @@ def trash_path(path: Path) -> FileOperation:
         send2trash.send2trash(str(path))
         op.completed = True
         return op
-    except ImportError:
-        raise RuntimeError("send2trash is not installed. Use permanent delete instead.")
+    except ImportError as err:
+        raise RuntimeError("send2trash is not installed. Use permanent delete instead.") from err
 
 
 def make_directory(path: Path) -> FileOperation:
@@ -190,21 +191,32 @@ def touch_file(path: Path) -> FileOperation:
 
 def open_with_system(path: Path) -> None:
     if sys.platform == "win32":
-        os.startfile(str(path))  # type: ignore[attr-defined]
+        startfile = os.startfile
+        startfile(str(path))  # nosec B606
     elif sys.platform == "darwin":
-        subprocess.run(["open", str(path)], check=False)
+        open_executable = shutil.which("open")
+        if open_executable is None:
+            raise RuntimeError("Could not locate the macOS 'open' command.")
+        subprocess.run([open_executable, str(path)], check=False)  # nosec B603
     else:
-        subprocess.run(["xdg-open", str(path)], check=False)
+        open_executable = shutil.which("xdg-open")
+        if open_executable is None:
+            raise RuntimeError("Could not locate the 'xdg-open' command.")
+        subprocess.run([open_executable, str(path)], check=False)  # nosec B603
 
 
 def send2trash_available() -> bool:
     try:
-        import send2trash  # type: ignore[import-untyped]  # noqa: F401
+        import send2trash  # noqa: F401
 
         return True
     except ImportError:
         return False
 
 
-def disk_usage(path: Path) -> shutil._ntuple_diskusage:  # type: ignore[name-defined]
-    return shutil.disk_usage(path)
+DiskUsage = namedtuple("DiskUsage", ["total", "used", "free"])
+
+
+def disk_usage(path: Path) -> DiskUsage:
+    usage = shutil.disk_usage(path)
+    return DiskUsage(usage.total, usage.used, usage.free)

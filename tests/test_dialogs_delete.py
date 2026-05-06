@@ -66,5 +66,5 @@ class TestCountContents:
         d = tmp_path / "d"
         d.mkdir()
         (d / "f.bin").write_bytes(b"x" * 100)
-        files, folders, total = count_contents(d)
+        _files, _folders, total = count_contents(d)
         assert total == 100

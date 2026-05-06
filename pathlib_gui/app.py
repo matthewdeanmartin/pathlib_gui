@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import queue as q_mod
+import tarfile
 import tkinter as tk
+from collections.abc import Callable
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
+from typing import Any, cast
 
 from pathlib_gui.config import get_prefs
 from pathlib_gui.dialogs.archive_create import show_create_archive_dialog
@@ -75,7 +78,7 @@ class NavigationHistory:
 class Toolbar(ttk.Frame):
     """Application toolbar with navigation and action buttons."""
 
-    def __init__(self, parent: tk.Widget, callbacks: dict[str, object], **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, callbacks: dict[str, Callable[[], None]], **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.callbacks = callbacks
         self.back_btn = ttk.Button(self, text="◀ Back", command=callbacks["back"], width=8)
@@ -122,7 +125,7 @@ class PathlibGuiApp:
     def build_ui(self) -> None:
         self.build_menu()
 
-        toolbar_callbacks: dict[str, object] = {
+        toolbar_callbacks: dict[str, Callable[[], None]] = {
             "back": self.go_back,
             "forward": self.go_forward,
             "up": self.go_up,
@@ -332,7 +335,7 @@ class PathlibGuiApp:
     def navigate_and_switch(self, path: Path) -> None:
         """Navigate to path and switch to Browse tab."""
         self.navigate_to(path)
-        self.main_notebook.select(0)
+        self._select_notebook_tab(self.main_notebook, 0)
 
     def go_back(self) -> None:
         p = self.history.go_back()
@@ -372,7 +375,7 @@ class PathlibGuiApp:
             try:
                 open_with_system(info.path)
                 self.status_bar.set_message(f"Opened: {info.name}")
-            except Exception as e:
+            except (OSError, RuntimeError) as e:
                 messagebox.showerror("Open Failed", str(e), parent=self.root)
 
     def cmd_new_folder(self) -> None:
@@ -383,7 +386,7 @@ class PathlibGuiApp:
             make_directory(self.current_path / name)
             self.status_bar.set_message(f"Created folder: {name}  [Backend: pathlib.Path.mkdir]")
             self.refresh()
-        except Exception as e:
+        except OSError as e:
             messagebox.showerror("Error", str(e), parent=self.root)
 
     def cmd_new_file(self) -> None:
@@ -394,7 +397,7 @@ class PathlibGuiApp:
             touch_file(self.current_path / name)
             self.status_bar.set_message(f"Created file: {name}  [Backend: pathlib.Path.touch]")
             self.refresh()
-        except Exception as e:
+        except OSError as e:
             messagebox.showerror("Error", str(e), parent=self.root)
 
     def cmd_open_system(self) -> None:
@@ -403,7 +406,7 @@ class PathlibGuiApp:
             return
         try:
             open_with_system(infos[0].path)
-        except Exception as e:
+        except (OSError, RuntimeError) as e:
             messagebox.showerror("Open Failed", str(e), parent=self.root)
 
     def cmd_copy(self) -> None:
@@ -439,7 +442,7 @@ class PathlibGuiApp:
             get_history().record(op)
             self.status_bar.set_message(f"Renamed to: {new_name}  [Backend: pathlib.Path.rename]")
             self.refresh()
-        except Exception as e:
+        except OSError as e:
             messagebox.showerror("Rename Error", str(e), parent=self.root)
 
     def cmd_delete(self) -> None:
@@ -455,7 +458,7 @@ class PathlibGuiApp:
                     delete_tree(info.path)
                 else:
                     delete_file(info.path)
-            except Exception as e:
+            except OSError as e:
                 errors.append(f"{info.name}: {e}")
         if errors:
             messagebox.showerror("Delete Errors", "\n".join(errors), parent=self.root)
@@ -473,7 +476,7 @@ class PathlibGuiApp:
         for info in infos:
             try:
                 trash_path(info.path)
-            except Exception as e:
+            except (OSError, RuntimeError) as e:
                 errors.append(f"{info.name}: {e}")
         if errors:
             messagebox.showerror("Trash Errors", "\n".join(errors), parent=self.root)
@@ -489,7 +492,7 @@ class PathlibGuiApp:
     def cmd_batch_rename(self) -> None:
         infos = self.file_table.selected_infos()
         if not infos:
-            infos = self.file_table.entries  # type: ignore[assignment]
+            infos = list(self.file_table.entries)
         paths = [i.path for i in infos]
         if not paths:
             return
@@ -563,9 +566,11 @@ class PathlibGuiApp:
                 if item is BatchHashWorker.DONE:
                     status.configure(text=f"Done — {done_count} files hashed  [Backend: hashlib.{algo}]")
                     return
-                p, digest = item  # type: ignore[misc]
-                done_count += 1
-                tree.insert("", tk.END, values=(p.name, digest))
+                if isinstance(item, tuple) and len(item) == 2:
+                    path_item, digest = item
+                    if isinstance(path_item, Path) and isinstance(digest, str):
+                        done_count += 1
+                        tree.insert("", tk.END, values=(path_item.name, digest))
             win.after(100, poll)
 
         win.after(100, poll)
@@ -590,9 +595,10 @@ class PathlibGuiApp:
         infos = self.file_table.selected_infos()
         initial = infos[0].path if infos else None
         pair = pick_compare_pair(self.root, initial_left=initial)
-        if not pair:
+        if pair is None:
             return
-        self.open_compare(pair[0], pair[1])
+        left_path, right_path = pair
+        self.open_compare(left_path, right_path)
 
     def cmd_compare_selected(self) -> None:
         infos = self.file_table.selected_infos()
@@ -602,13 +608,13 @@ class PathlibGuiApp:
         self.open_compare(infos[0].path, infos[1].path)
 
     def open_compare(self, left: Path, right: Path) -> None:
-        self.main_notebook.select(1)
+        self._select_notebook_tab(self.main_notebook, 1)
         if left.is_file() and right.is_file():
-            self.compare_notebook.select(0)
+            self._select_notebook_tab(self.compare_notebook, 0)
             self.file_diff_view.load(left, right)
             self.compare_label.configure(text=f"{left.name}  ↔  {right.name}")
         elif left.is_dir() and right.is_dir():
-            self.compare_notebook.select(1)
+            self._select_notebook_tab(self.compare_notebook, 1)
             self.dir_compare_view.load(left, right)
             self.compare_label.configure(text=f"{left.name}/  ↔  {right.name}/")
         else:
@@ -635,7 +641,7 @@ class PathlibGuiApp:
         self.load_archive(infos[0].path)
 
     def load_archive(self, path: Path) -> None:
-        self.main_notebook.select(2)
+        self._select_notebook_tab(self.main_notebook, 2)
         self.archive_label.configure(text=str(path))
         self.archive_view.load(path)
         self.status_bar.set_message(f"Archive: {path.name}  [Backend: zipfile / tarfile]")
@@ -646,18 +652,28 @@ class PathlibGuiApp:
             messagebox.showinfo("Create Archive", "Select files/folders to archive.", parent=self.root)
             return
         sources = [i.path for i in infos]
-        result = show_create_archive_dialog(self.root, sources)
-        if not result:
+        result = cast(
+            tuple[Path, str, object] | None,
+            show_create_archive_dialog(self.root, sources),
+        )
+        if result is None:
             return
         dest, fmt, compression = result
         try:
 
-            from pathlib_gui.services.archive_service import create_bz2, create_gz, create_tar, create_xz, create_zip
+            from pathlib_gui.services.archive_service import (
+                TarWriteMode,
+                create_bz2,
+                create_gz,
+                create_tar,
+                create_xz,
+                create_zip,
+            )
 
-            if fmt == "zip":
-                create_zip(sources, dest, compression=int(compression))
+            if fmt == "zip" and isinstance(compression, int):
+                create_zip(sources, dest, compression=compression)
             elif fmt.startswith("tar"):
-                mode_map = {"tar": "w", "tar.gz": "w:gz", "tar.bz2": "w:bz2", "tar.xz": "w:xz"}
+                mode_map: dict[str, TarWriteMode] = {"tar": "w", "tar.gz": "w:gz", "tar.bz2": "w:bz2", "tar.xz": "w:xz"}
                 create_tar(sources, dest, mode=mode_map.get(fmt, "w:gz"))
             elif fmt == "gz":
                 create_gz(sources[0], dest)
@@ -667,15 +683,15 @@ class PathlibGuiApp:
                 create_xz(sources[0], dest)
             self.status_bar.set_message(f"Created archive: {dest.name}  [Backend: {fmt}]")
             self.refresh()
-        except Exception as e:
+        except (OSError, RuntimeError, ValueError, tarfile.TarError) as e:
             messagebox.showerror("Archive Error", str(e), parent=self.root)
 
     def cmd_open_search(self) -> None:
-        self.main_notebook.select(3)
+        self._select_notebook_tab(self.main_notebook, 3)
         self.search_view.set_root(self.current_path)
 
     def cmd_open_duplicates(self) -> None:
-        self.main_notebook.select(4)
+        self._select_notebook_tab(self.main_notebook, 4)
         self.duplicate_view.set_root(self.current_path)
 
     def run_copy_worker(self, pairs: list[tuple[Path, Path]], move: bool, label: str) -> None:
@@ -706,7 +722,7 @@ class PathlibGuiApp:
                 if isinstance(item, tuple) and item[0] == "ERROR":
                     errors.append(item[1])
                 elif isinstance(item, tuple) and len(item) == 3:
-                    done, total, name = item
+                    done, _total, name = item
                     self.op_queue_view.update_operation(idx, done, f"{name}")
             self.root.after(100, poll)
 
@@ -747,7 +763,7 @@ class PathlibGuiApp:
                     delete_tree(info.path)
                 else:
                     delete_file(info.path)
-            except Exception as e:
+            except OSError as e:
                 errors.append(f"{info.name}: {e}")
         if errors:
             messagebox.showerror("Delete Errors", "\n".join(errors), parent=self.root)
@@ -765,7 +781,7 @@ class PathlibGuiApp:
         for info in infos:
             try:
                 trash_path(info.path)
-            except Exception as e:
+            except (OSError, RuntimeError) as e:
                 errors.append(f"{info.name}: {e}")
         if errors:
             messagebox.showerror("Trash Errors", "\n".join(errors), parent=self.root)
@@ -876,14 +892,20 @@ class PathlibGuiApp:
                     self.refresh()
                     win.destroy()
 
+        def clear_history() -> None:
+            history.clear()
+            win.destroy()
+
         ttk.Button(btn, text="Undo selected", command=undo_selected).pack(side=tk.LEFT)
-        ttk.Button(btn, text="Clear history", command=lambda: (history.clear(), win.destroy())).pack(
-            side=tk.LEFT, padx=4
-        )
+        ttk.Button(btn, text="Clear history", command=clear_history).pack(side=tk.LEFT, padx=4)
         ttk.Button(btn, text="Close", command=win.destroy).pack(side=tk.RIGHT)
 
     def cmd_open_stdlib_map(self) -> None:
-        self.main_notebook.select(5)
+        self._select_notebook_tab(self.main_notebook, 5)
+
+    def _select_notebook_tab(self, notebook: ttk.Notebook, tab_id: int) -> None:
+        select = cast(Callable[[int], str], notebook.select)
+        select(tab_id)
 
     def build_stdlib_map_tab(self) -> None:
         frame = ttk.Frame(self.main_notebook)
@@ -977,5 +999,5 @@ CONCURRENCY & APP PLUMBING
 def run_app(initial_path: Path | None = None) -> None:
     """Launch the Tkinter application."""
     root = tk.Tk()
-    app = PathlibGuiApp(root, initial_path=initial_path)
+    PathlibGuiApp(root, initial_path=initial_path)
     root.mainloop()

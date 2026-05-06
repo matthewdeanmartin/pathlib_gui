@@ -5,8 +5,10 @@ from __future__ import annotations
 import email as email_mod
 import mailbox
 import tkinter as tk
+from email.message import Message
 from pathlib import Path
 from tkinter import ttk
+from typing import Any
 
 from pathlib_gui.inspectors.base import BaseInspector
 
@@ -17,7 +19,7 @@ _EML_SUFFIXES = {".eml", ".msg"}
 class MailboxInspector(BaseInspector):
     label = "Mailbox"
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         ttk.Label(self, text="Backend: mailbox / email", foreground="gray").pack(anchor="w", padx=4, pady=2)
 
@@ -83,26 +85,26 @@ class MailboxInspector(BaseInspector):
         except Exception as e:
             self.info_label.configure(text=f"Error: {e}")
 
-    def _extract_body(self, msg: object) -> str:
-        if hasattr(msg, "is_multipart") and msg.is_multipart():  # type: ignore[union-attr]
+    def _extract_body(self, msg: Message[str] | Message[bytes]) -> str:
+        if msg.is_multipart():
             parts: list[str] = []
-            for part in msg.walk():  # type: ignore[union-attr]
+            for part in msg.walk():
                 ct = part.get_content_type()
                 if ct == "text/plain":
-                    try:
-                        parts.append(part.get_payload(decode=True).decode(errors="replace"))  # type: ignore[union-attr]
-                    except Exception:
-                        pass
+                    payload = part.get_payload(decode=True)
+                    if isinstance(payload, bytes):
+                        parts.append(payload.decode(errors="replace"))
+                    elif isinstance(payload, str):
+                        parts.append(payload)
             return "\n---\n".join(parts) or "(no plain-text body)"
-        try:
-            payload = msg.get_payload(decode=True)  # type: ignore[union-attr]
-            if isinstance(payload, bytes):
-                return payload.decode(errors="replace")
-        except Exception:
-            pass
-        return str(msg.get_payload())  # type: ignore[union-attr]
+        payload = msg.get_payload(decode=True)
+        if isinstance(payload, bytes):
+            return payload.decode(errors="replace")
+        if isinstance(payload, str):
+            return payload
+        return str(msg.get_payload())
 
-    def show_body(self, event: tk.Event) -> None:  # type: ignore[type-arg]
+    def show_body(self, event: tk.Event) -> None:
         sel = self.msg_list.selection()
         if not sel:
             return

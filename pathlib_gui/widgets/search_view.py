@@ -5,9 +5,10 @@ from __future__ import annotations
 import datetime
 import queue
 import tkinter as tk
+from collections.abc import Callable
 from pathlib import Path
 from tkinter import ttk
-from collections.abc import Callable
+from typing import Any
 
 from pathlib_gui.models.search import SearchQuery, SearchResult
 from pathlib_gui.services.search_service import SearchWorker
@@ -33,9 +34,9 @@ class SearchView(ttk.Frame):
 
     def __init__(
         self,
-        parent: tk.Widget,
+        parent: tk.Misc,
         on_navigate: Callable[[Path], None] | None = None,
-        **kwargs: object,
+        **kwargs: Any,
     ) -> None:
         super().__init__(parent, **kwargs)
         self.on_navigate = on_navigate
@@ -200,7 +201,7 @@ class SearchView(ttk.Frame):
         self.count_label.configure(text=f"{len(self.results)} so far…")
         self.after(100, self.poll_results)
 
-    def navigate_to_result(self, event: tk.Event) -> None:  # type: ignore[type-arg]
+    def navigate_to_result(self, event: tk.Event) -> None:
         sel = self.tree.selection()
         if not sel or not self.on_navigate:
             return

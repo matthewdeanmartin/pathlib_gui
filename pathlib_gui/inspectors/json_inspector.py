@@ -6,6 +6,7 @@ import json
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
+from typing import Any
 
 from pathlib_gui.inspectors.base import BaseInspector
 
@@ -35,7 +36,7 @@ def build_tree_items(tree: ttk.Treeview, parent: str, value: object, depth: int 
 class JsonInspector(BaseInspector):
     label = "JSON"
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.build_widgets()
 

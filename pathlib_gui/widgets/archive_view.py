@@ -6,6 +6,7 @@ import datetime
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
+from typing import Any, ClassVar
 
 from pathlib_gui.models.archive import ArchiveMember, compression_ratio, format_size
 from pathlib_gui.services.archive_service import (
@@ -31,7 +32,7 @@ class ArchiveView(ttk.Frame):
     """Archive member table with extract / preview actions."""
 
     COLUMNS = ("name", "size", "compressed", "ratio", "modified", "crc")
-    HEADINGS = {
+    HEADINGS: ClassVar[dict[str, str]] = {
         "name": "Name",
         "size": "Size",
         "compressed": "Compressed",
@@ -39,9 +40,16 @@ class ArchiveView(ttk.Frame):
         "modified": "Modified",
         "crc": "CRC",
     }
-    WIDTHS = {"name": 300, "size": 80, "compressed": 90, "ratio": 55, "modified": 130, "crc": 90}
+    WIDTHS: ClassVar[dict[str, int]] = {
+        "name": 300,
+        "size": 80,
+        "compressed": 90,
+        "ratio": 55,
+        "modified": 130,
+        "crc": 90,
+    }
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.archive_path: Path | None = None
         self.members: list[ArchiveMember] = []
@@ -183,12 +191,10 @@ class ArchiveView(ttk.Frame):
         try:
             tmp_path = preview_member(self.archive_path, m.name)
             from pathlib_gui.inspectors.base import inspector_for_path
-            from pathlib_gui.models.paths import PathInfo
 
             win = tk.Toplevel(self)
             win.title(f"Preview: {m.name}")
             win.geometry("800x600")
-            info = PathInfo.from_path(tmp_path)
             inspector = inspector_for_path(win, tmp_path)
             inspector.pack(fill=tk.BOTH, expand=True)
             inspector.load(tmp_path)

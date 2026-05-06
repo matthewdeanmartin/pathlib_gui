@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pathlib_gui.models.operations import FileOperation
+from pathlib_gui.models.operations import FileOperation, OperationKind
 
 
 class TestFileOperation:
@@ -44,6 +44,7 @@ class TestFileOperation:
         assert op2.errors == []
 
     def test_all_operation_kinds(self) -> None:
-        for kind in ("copy", "move", "delete", "trash", "rename", "mkdir", "touch"):
-            op = FileOperation(kind=kind, sources=[Path("/x")])  # type: ignore[arg-type]
+        kinds: tuple[OperationKind, ...] = ("copy", "move", "delete", "trash", "rename", "mkdir", "touch")
+        for kind in kinds:
+            op = FileOperation(kind=kind, sources=[Path("/x")])
             assert op.kind == kind

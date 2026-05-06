@@ -7,7 +7,7 @@ from pathlib import Path
 from tkinter import filedialog, ttk
 
 
-def pick_compare_pair(parent: tk.Widget, initial_left: Path | None = None) -> tuple[Path, Path] | None:
+def pick_compare_pair(parent: tk.Misc, initial_left: Path | None = None) -> tuple[Path, Path] | None:
     """Show a dialog to pick two files or directories to compare."""
     result: list[tuple[Path, Path]] = []
 

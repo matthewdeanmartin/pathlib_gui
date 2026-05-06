@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+from contextlib import suppress
 from tkinter import ttk
 
 from pathlib_gui.config import get_prefs
@@ -13,7 +14,7 @@ COMPARE_MODES = ["text", "binary", "hash", "metadata"]
 
 
 class PreferencesDialog(tk.Toplevel):
-    def __init__(self, parent: tk.Widget) -> None:
+    def __init__(self, parent: tk.Misc) -> None:
         super().__init__(parent)
         self.title("Preferences")
         self.geometry("420x380")
@@ -80,9 +81,7 @@ class PreferencesDialog(tk.Toplevel):
         prefs.set("default_archive_format", self.archive_fmt.get())
         prefs.set("hash_algorithm", self.hash_algo.get())
         prefs.set("default_compare_mode", self.compare_mode.get())
-        try:
+        with suppress(ValueError):
             prefs.set("font_size", int(self.font_size.get()))
-        except ValueError:
-            pass
         prefs.save()
         self.destroy()

@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
+from typing import Any
 
 
 class StatusBar(ttk.Frame):
     """A simple status bar shown at the bottom of the app."""
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.message_var = tk.StringVar(value="Ready")
         self.path_var = tk.StringVar(value="")

@@ -21,9 +21,9 @@ def diff_files(
             text = ""
         lines = text.splitlines(keepends=True)
         if ignore_case:
-            lines = [l.lower() for l in lines]
+            lines = [line.lower() for line in lines]
         if ignore_whitespace:
-            lines = [" ".join(l.split()) + "\n" for l in lines]
+            lines = [" ".join(line.split()) + "\n" for line in lines]
         return lines
 
     left_lines = read(left)

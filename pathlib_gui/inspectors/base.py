@@ -5,6 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
+from typing import Any
 
 
 class BaseInspector(ttk.Frame):
@@ -12,7 +13,7 @@ class BaseInspector(ttk.Frame):
 
     label: str = "Inspector"
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
 
     def load(self, path: Path) -> None:
@@ -22,7 +23,7 @@ class BaseInspector(ttk.Frame):
         pass
 
 
-def inspector_for_path(parent: tk.Widget, path: Path) -> BaseInspector:
+def inspector_for_path(parent: tk.Misc, path: Path) -> BaseInspector:
     """Return the most appropriate inspector for the given path."""
     from pathlib_gui.inspectors.binary import BinaryInspector
     from pathlib_gui.inspectors.csv_inspector import CsvInspector
@@ -33,7 +34,6 @@ def inspector_for_path(parent: tk.Widget, path: Path) -> BaseInspector:
     from pathlib_gui.inspectors.text import TextInspector
     from pathlib_gui.inspectors.toml_inspector import TomlInspector
     from pathlib_gui.inspectors.wave_inspector import WaveInspector
-    from pathlib_gui.inspectors.xml_inspector import XmlInspector
 
     suffix = path.suffix.lower()
 
@@ -48,6 +48,10 @@ def inspector_for_path(parent: tk.Widget, path: Path) -> BaseInspector:
     if suffix in (".toml",):
         return TomlInspector(parent)
     if suffix in (".xml", ".xhtml", ".svg"):
+        try:
+            from pathlib_gui.inspectors.xml_inspector import XmlInspector
+        except ModuleNotFoundError:
+            return TextInspector(parent)
         return XmlInspector(parent)
     if suffix in IMAGE_SUFFIXES:
         return ImageInspector(parent)

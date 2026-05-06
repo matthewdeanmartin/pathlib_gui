@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import threading
 import tkinter as tk
+from collections.abc import Callable
 from pathlib import Path
 from tkinter import messagebox, ttk
-from collections.abc import Callable
+from typing import Any
 
 from pathlib_gui.dialogs.delete import confirm_delete
 from pathlib_gui.services.filesystem import send2trash_available
@@ -18,9 +19,9 @@ class DuplicateFinderView(ttk.Frame):
 
     def __init__(
         self,
-        parent: tk.Widget,
+        parent: tk.Misc,
         on_navigate: Callable[[Path], None] | None = None,
-        **kwargs: object,
+        **kwargs: Any,
     ) -> None:
         super().__init__(parent, **kwargs)
         self.on_navigate = on_navigate
@@ -170,10 +171,10 @@ class DuplicateFinderView(ttk.Frame):
     def action_keep_shortest(self) -> None:
         self.keep_strategy(lambda group: sorted(group, key=lambda p: len(str(p)))[1:])
 
-    def keep_strategy(self, to_delete_fn: object) -> None:
+    def keep_strategy(self, to_delete_fn: Callable[[list[Path]], list[Path]]) -> None:
         all_to_delete: list[Path] = []
         for group in self.groups:
-            all_to_delete.extend(to_delete_fn(group))  # type: ignore[operator]
+            all_to_delete.extend(to_delete_fn(group))
         if not all_to_delete:
             return
         if confirm_delete(self, all_to_delete):

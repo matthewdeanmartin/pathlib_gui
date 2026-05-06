@@ -6,7 +6,7 @@ import tkinter as tk
 from tkinter import simpledialog
 
 
-def ask_rename(parent: tk.Widget, current_name: str) -> str | None:
+def ask_rename(parent: tk.Misc, current_name: str) -> str | None:
     """Prompt for a new filename. Returns None if cancelled."""
     return simpledialog.askstring(
         "Rename",

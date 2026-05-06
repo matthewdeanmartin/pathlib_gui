@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import importlib
 import sys
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
+from typing import Any
 
 from pathlib_gui.inspectors.base import BaseInspector
 
@@ -35,7 +37,7 @@ def build_tree_items(tree: ttk.Treeview, parent: str, value: object, depth: int 
 class TomlInspector(BaseInspector):
     label = "TOML"
 
-    def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
+    def __init__(self, parent: tk.Misc, **kwargs: Any) -> None:
         super().__init__(parent, **kwargs)
         self.build_widgets()
 
@@ -70,9 +72,8 @@ class TomlInspector(BaseInspector):
         if sys.version_info < (3, 11):
             return
 
-        import tomllib
-
         try:
+            tomllib = importlib.import_module("tomllib")
             with path.open("rb") as fh:
                 data = tomllib.load(fh)
         except Exception as e:
