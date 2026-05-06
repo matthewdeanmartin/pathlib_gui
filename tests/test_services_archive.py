@@ -349,6 +349,7 @@ class TestCreateTar:
 class TestCreateGz:
     def test_creates_gz(self, tmp_path: Path) -> None:
         import gzip
+
         src = tmp_path / "data.txt"
         src.write_bytes(b"compress me")
         dest = tmp_path / "data.txt.gz"
@@ -361,6 +362,7 @@ class TestCreateGz:
 class TestCreateBz2:
     def test_creates_bz2(self, tmp_path: Path) -> None:
         import bz2
+
         src = tmp_path / "data.txt"
         src.write_bytes(b"bzip2 me")
         dest = tmp_path / "data.txt.bz2"
@@ -373,6 +375,7 @@ class TestCreateBz2:
 class TestCreateXz:
     def test_creates_xz(self, tmp_path: Path) -> None:
         import lzma
+
         src = tmp_path / "data.txt"
         src.write_bytes(b"xz compress")
         dest = tmp_path / "data.txt.xz"

@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import stat
 from pathlib import Path
 
-import pytest
 
 from pathlib_gui.models.paths import PathInfo, format_size, list_directory
 
@@ -21,10 +19,10 @@ class TestFormatSize:
         assert format_size(1024 * 1024) == "1.0 MB"
 
     def test_gigabytes(self) -> None:
-        assert format_size(1024 ** 3) == "1.0 GB"
+        assert format_size(1024**3) == "1.0 GB"
 
     def test_terabytes(self) -> None:
-        assert format_size(1024 ** 4) == "1.0 TB"
+        assert format_size(1024**4) == "1.0 TB"
 
     def test_zero(self) -> None:
         assert format_size(0) == "0.0 B"
@@ -33,7 +31,7 @@ class TestFormatSize:
         assert format_size(1024, is_dir=True) == ""
 
     def test_large_value_petabytes(self) -> None:
-        result = format_size(1024 ** 5)
+        result = format_size(1024**5)
         assert "PB" in result
 
 
@@ -88,6 +86,7 @@ class TestPathInfoPermissionsString:
 
     def test_zero_mode_returns_ten_chars(self) -> None:
         import stat as _stat
+
         info = PathInfo(
             path=Path("/fake"),
             name="fake",

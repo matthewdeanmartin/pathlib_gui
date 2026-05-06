@@ -18,13 +18,13 @@ class TestFormatBytes:
         assert format_bytes(1024 * 1024) == "1.0 MB"
 
     def test_gigabytes(self) -> None:
-        assert format_bytes(1024 ** 3) == "1.0 GB"
+        assert format_bytes(1024**3) == "1.0 GB"
 
     def test_terabytes(self) -> None:
-        assert format_bytes(1024 ** 4) == "1.0 TB"
+        assert format_bytes(1024**4) == "1.0 TB"
 
     def test_large_returns_petabytes(self) -> None:
-        result = format_bytes(1024 ** 5)
+        result = format_bytes(1024**5)
         assert "PB" in result
 
     def test_zero(self) -> None:

@@ -21,9 +21,7 @@ class SqliteInspector(BaseInspector):
         self.build_widgets()
 
     def build_widgets(self) -> None:
-        ttk.Label(self, text="Backend: sqlite3 (read-only via URI)", foreground="gray").pack(
-            anchor="w", padx=4, pady=2
-        )
+        ttk.Label(self, text="Backend: sqlite3 (read-only via URI)", foreground="gray").pack(anchor="w", padx=4, pady=2)
 
         pane = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
         pane.pack(fill=tk.BOTH, expand=True)
@@ -98,11 +96,11 @@ class SqliteInspector(BaseInspector):
     def load_table(self, table: str) -> None:
         if not self.db_path:
             return
-        self.query_var.set(f"* FROM \"{table}\" LIMIT 100")
+        self.query_var.set(f'* FROM "{table}" LIMIT 100')
         try:
             uri = self.db_path.as_uri() + "?mode=ro"
             conn = sqlite3.connect(uri, uri=True)
-            schema_cur = conn.execute(f"SELECT sql FROM sqlite_master WHERE name=?", (table,))
+            schema_cur = conn.execute("SELECT sql FROM sqlite_master WHERE name=?", (table,))
             schema_row = schema_cur.fetchone()
             schema = schema_row[0] if schema_row else f"(no schema for {table})"
             conn.close()

@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import datetime
-import os
-import stat
 import tarfile
 import tempfile
 import zipfile
@@ -74,6 +72,7 @@ def safe_extract_path(member_name: str, dest: Path) -> Path | None:
     """Return the resolved destination or None if the member would escape dest."""
     # Reject Windows drive-letter roots early (e.g. C:/, C:\)
     import re as _re
+
     if _re.match(r"^[A-Za-z]:[/\\]", member_name):
         return None
     # Normalise using PurePosixPath to collapse .. and strip leading /
@@ -181,15 +180,15 @@ def test_tar(path: Path) -> list[str]:
 
 
 ARCHIVE_PRESETS = [
-    ("ZIP — normal",        "zip",    zipfile.ZIP_STORED),
-    ("ZIP — deflated",      "zip",    zipfile.ZIP_DEFLATED),
-    ("TAR — uncompressed",  "tar",    ""),
-    ("TAR.GZ",              "tar.gz", "gz"),
-    ("TAR.BZ2",             "tar.bz2","bz2"),
-    ("TAR.XZ",              "tar.xz", "xz"),
-    ("GZIP single file",    "gz",     ""),
-    ("BZIP2 single file",   "bz2",    ""),
-    ("XZ single file",      "xz",     ""),
+    ("ZIP — normal", "zip", zipfile.ZIP_STORED),
+    ("ZIP — deflated", "zip", zipfile.ZIP_DEFLATED),
+    ("TAR — uncompressed", "tar", ""),
+    ("TAR.GZ", "tar.gz", "gz"),
+    ("TAR.BZ2", "tar.bz2", "bz2"),
+    ("TAR.XZ", "tar.xz", "xz"),
+    ("GZIP single file", "gz", ""),
+    ("BZIP2 single file", "bz2", ""),
+    ("XZ single file", "xz", ""),
 ]
 
 
@@ -211,17 +210,20 @@ def create_tar(sources: list[Path], dest: Path, mode: str = "w:gz") -> None:
 
 def create_gz(source: Path, dest: Path) -> None:
     import gzip
+
     with source.open("rb") as src_fh, gzip.open(str(dest), "wb") as gz_fh:
         gz_fh.write(src_fh.read())
 
 
 def create_bz2(source: Path, dest: Path) -> None:
     import bz2
+
     with source.open("rb") as src_fh, bz2.open(str(dest), "wb") as bz_fh:
         bz_fh.write(src_fh.read())
 
 
 def create_xz(source: Path, dest: Path) -> None:
     import lzma
+
     with source.open("rb") as src_fh, lzma.open(str(dest), "wb") as xz_fh:
         xz_fh.write(src_fh.read())

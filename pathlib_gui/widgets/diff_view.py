@@ -143,9 +143,7 @@ class DiffView(ttk.Frame):
             return
         import difflib
 
-        opcodes = difflib.SequenceMatcher(
-            None, self.result.left_lines, self.result.right_lines
-        ).get_opcodes()
+        opcodes = difflib.SequenceMatcher(None, self.result.left_lines, self.result.right_lines).get_opcodes()
         self.diff_regions = []
 
         for widget in (self.left_text, self.right_text):
@@ -242,6 +240,7 @@ class DiffView(ttk.Frame):
             parent=self,
         ):
             import shutil
+
             shutil.copy2(self.result.left_path, self.result.right_path)
             self.reload()
 
@@ -254,6 +253,7 @@ class DiffView(ttk.Frame):
             parent=self,
         ):
             import shutil
+
             shutil.copy2(self.result.right_path, self.result.left_path)
             self.reload()
 
@@ -305,10 +305,12 @@ class DirCompareView(ttk.Frame):
 
     def load(self, left: Path, right: Path) -> None:
         import filecmp
+
         self.left_path = left
         self.right_path = right
         cmp = filecmp.dircmp(str(left), str(right))
         from pathlib_gui.models.compare import DirCompareResult
+
         self.result = DirCompareResult(
             left=left,
             right=right,
@@ -341,6 +343,7 @@ class DirCompareView(ttk.Frame):
         src = self.left_path / name
         dst = self.right_path / name
         import shutil
+
         if src.is_dir():
             shutil.copytree(src, dst, dirs_exist_ok=True)
         else:
@@ -356,6 +359,7 @@ class DirCompareView(ttk.Frame):
         src = self.right_path / name
         dst = self.left_path / name
         import shutil
+
         if src.is_dir():
             shutil.copytree(src, dst, dirs_exist_ok=True)
         else:
@@ -373,11 +377,15 @@ class DirCompareView(ttk.Frame):
         elif "Right" in category:
             path = self.right_path / name
         else:
-            messagebox.showinfo("Delete Orphan", "Only 'Only in Left/Right' items can be deleted as orphans.", parent=self)
+            messagebox.showinfo(
+                "Delete Orphan", "Only 'Only in Left/Right' items can be deleted as orphans.", parent=self
+            )
             return
         from pathlib_gui.dialogs.delete import confirm_delete
+
         if confirm_delete(self, [path]):
             import shutil
+
             if path.is_dir():
                 shutil.rmtree(path)
             else:

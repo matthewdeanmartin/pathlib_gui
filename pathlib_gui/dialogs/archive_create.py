@@ -9,9 +9,7 @@ from tkinter import filedialog, ttk
 from pathlib_gui.services.archive_service import ARCHIVE_PRESETS
 
 
-def show_create_archive_dialog(
-    parent: tk.Widget, sources: list[Path]
-) -> tuple[Path, str, object] | None:
+def show_create_archive_dialog(parent: tk.Widget, sources: list[Path]) -> tuple[Path, str, object] | None:
     """Show archive creation dialog. Returns (dest_path, preset_label, compression) or None."""
     result: list[tuple[Path, str, object]] = []
 

@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import shutil
 import tkinter as tk
 from pathlib import Path
-from tkinter import messagebox, ttk
+from tkinter import messagebox
 
-from pathlib_gui.services.filesystem import send2trash_available
 
 
 def count_contents(path: Path) -> tuple[int, int, int]:

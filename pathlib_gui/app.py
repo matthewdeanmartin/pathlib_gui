@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
+import queue as q_mod
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
-
-import queue as q_mod
 
 from pathlib_gui.config import get_prefs
 from pathlib_gui.dialogs.archive_create import show_create_archive_dialog
@@ -21,12 +20,9 @@ from pathlib_gui.models.history import get_history
 from pathlib_gui.models.paths import PathInfo
 from pathlib_gui.services.filesystem import (
     CopyWorker,
-    copy_file,
-    copy_tree,
     delete_file,
     delete_tree,
     make_directory,
-    move_path,
     open_with_system,
     rename_path,
     send2trash_available,
@@ -223,9 +219,7 @@ class PathlibGuiApp:
         ttk.Button(top, text="Create archive from selected…", command=self.cmd_create_archive).pack(
             side=tk.LEFT, padx=2
         )
-        ttk.Button(top, text="Open selected archive", command=self.cmd_open_selected_archive).pack(
-            side=tk.LEFT, padx=2
-        )
+        ttk.Button(top, text="Open selected archive", command=self.cmd_open_selected_archive).pack(side=tk.LEFT, padx=2)
         self.archive_label = ttk.Label(top, text="", foreground="gray")
         self.archive_label.pack(side=tk.LEFT, padx=8)
 
@@ -466,9 +460,7 @@ class PathlibGuiApp:
         if errors:
             messagebox.showerror("Delete Errors", "\n".join(errors), parent=self.root)
         else:
-            self.status_bar.set_message(
-                f"Deleted {len(infos)} item(s)  [Backend: pathlib.Path.unlink / shutil.rmtree]"
-            )
+            self.status_bar.set_message(f"Deleted {len(infos)} item(s)  [Backend: pathlib.Path.unlink / shutil.rmtree]")
         self.refresh()
 
     def cmd_trash(self) -> None:
@@ -520,7 +512,7 @@ class PathlibGuiApp:
             return
 
         import queue as q_mod
-        import threading
+
         from pathlib_gui.services.hash_service import BatchHashWorker
 
         result_queue: q_mod.Queue[object] = q_mod.Queue()
@@ -542,6 +534,7 @@ class PathlibGuiApp:
 
         def export_csv() -> None:
             import csv
+
             path = filedialog.asksaveasfilename(
                 title="Save hashes as CSV",
                 defaultextension=".csv",
@@ -619,9 +612,7 @@ class PathlibGuiApp:
             self.dir_compare_view.load(left, right)
             self.compare_label.configure(text=f"{left.name}/  ↔  {right.name}/")
         else:
-            messagebox.showinfo(
-                "Compare", "Both paths must be files or both must be directories.", parent=self.root
-            )
+            messagebox.showinfo("Compare", "Both paths must be files or both must be directories.", parent=self.root)
 
     def cmd_open_archive(self) -> None:
         path_str = filedialog.askopenfilename(
@@ -660,8 +651,8 @@ class PathlibGuiApp:
             return
         dest, fmt, compression = result
         try:
+
             from pathlib_gui.services.archive_service import create_bz2, create_gz, create_tar, create_xz, create_zip
-            import zipfile
 
             if fmt == "zip":
                 create_zip(sources, dest, compression=int(compression))
@@ -709,9 +700,7 @@ class PathlibGuiApp:
                     if errors:
                         messagebox.showerror(f"{verb} Errors", "\n".join(errors), parent=self.root)
                     else:
-                        self.status_bar.set_message(
-                            f"{verb} {len(pairs)} item(s)  [Backend: {backend}]"
-                        )
+                        self.status_bar.set_message(f"{verb} {len(pairs)} item(s)  [Backend: {backend}]")
                     self.refresh()
                     return
                 if isinstance(item, tuple) and item[0] == "ERROR":
@@ -763,9 +752,7 @@ class PathlibGuiApp:
         if errors:
             messagebox.showerror("Delete Errors", "\n".join(errors), parent=self.root)
         else:
-            self.status_bar.set_message(
-                f"Deleted {len(infos)} item(s)  [Backend: pathlib.Path.unlink / shutil.rmtree]"
-            )
+            self.status_bar.set_message(f"Deleted {len(infos)} item(s)  [Backend: pathlib.Path.unlink / shutil.rmtree]")
         self.refresh()
 
     def cmd_batch_trash(self) -> None:
@@ -783,9 +770,7 @@ class PathlibGuiApp:
         if errors:
             messagebox.showerror("Trash Errors", "\n".join(errors), parent=self.root)
         else:
-            self.status_bar.set_message(
-                f"Trashed {len(infos)} item(s)  [Backend: send2trash.send2trash]"
-            )
+            self.status_bar.set_message(f"Trashed {len(infos)} item(s)  [Backend: send2trash.send2trash]")
         self.refresh()
 
     def cmd_batch_chmod(self) -> None:
@@ -820,6 +805,7 @@ class PathlibGuiApp:
         tree.column("new", width=120)
         tree.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
         import stat as stat_mod
+
         for info in infos:
             old_sym = stat_mod.filemode(info.mode) if info.mode else "??"
             new_sym = stat_mod.filemode(mode)
@@ -830,6 +816,7 @@ class PathlibGuiApp:
             for info in infos:
                 try:
                     import os
+
                     os.chmod(info.path, mode)
                 except OSError as e:
                     errors.append(f"{info.name}: {e}")
@@ -837,9 +824,7 @@ class PathlibGuiApp:
             if errors:
                 messagebox.showerror("chmod Errors", "\n".join(errors), parent=self.root)
             else:
-                self.status_bar.set_message(
-                    f"chmod {oct(mode)} applied to {len(infos)} item(s)  [Backend: os.chmod]"
-                )
+                self.status_bar.set_message(f"chmod {oct(mode)} applied to {len(infos)} item(s)  [Backend: os.chmod]")
             self.refresh()
 
         btn = ttk.Frame(win)
@@ -851,9 +836,7 @@ class PathlibGuiApp:
         dlg = CreateSymlinkDialog(self.root, self.current_path)
         self.root.wait_window(dlg)
         if dlg.created:
-            self.status_bar.set_message(
-                f"Created symlink: {dlg.created.name}  [Backend: pathlib.Path.symlink_to]"
-            )
+            self.status_bar.set_message(f"Created symlink: {dlg.created.name}  [Backend: pathlib.Path.symlink_to]")
             self.refresh()
 
     def cmd_preferences(self) -> None:
@@ -894,7 +877,9 @@ class PathlibGuiApp:
                     win.destroy()
 
         ttk.Button(btn, text="Undo selected", command=undo_selected).pack(side=tk.LEFT)
-        ttk.Button(btn, text="Clear history", command=lambda: (history.clear(), win.destroy())).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btn, text="Clear history", command=lambda: (history.clear(), win.destroy())).pack(
+            side=tk.LEFT, padx=4
+        )
         ttk.Button(btn, text="Close", command=win.destroy).pack(side=tk.RIGHT)
 
     def cmd_open_stdlib_map(self) -> None:

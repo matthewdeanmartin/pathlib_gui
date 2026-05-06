@@ -44,7 +44,7 @@ class TestHexDump:
 
     def test_non_printable_shown_as_dot_in_ascii_column(self) -> None:
         # Only non-printable bytes (outside 0x20-0x7E) are shown as '.' in the ASCII column
-        data = b"\x00\xFF"
+        data = b"\x00\xff"
         result = hex_dump(data)
         assert "|..|" in result
 

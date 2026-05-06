@@ -6,7 +6,7 @@ import datetime
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
-from typing import Callable
+from collections.abc import Callable
 
 from pathlib_gui.models.paths import PathInfo, format_size, list_directory
 

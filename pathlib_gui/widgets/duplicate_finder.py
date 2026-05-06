@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-import queue
 import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
-from typing import Callable
+from collections.abc import Callable
 
 from pathlib_gui.dialogs.delete import confirm_delete
-from pathlib_gui.services.hash_service import find_duplicates
 from pathlib_gui.services.filesystem import send2trash_available
+from pathlib_gui.services.hash_service import find_duplicates
 
 
 class DuplicateFinderView(ttk.Frame):
@@ -113,6 +112,7 @@ class DuplicateFinderView(ttk.Frame):
     def render_groups(self) -> None:
         self.tree.delete(*self.tree.get_children())
         from pathlib_gui.models.paths import format_size
+
         for i, group in enumerate(self.groups):
             size = group[0].stat().st_size if group else 0
             label = f"Group {i + 1}  ({len(group)} files, {format_size(size)} each)"
@@ -149,6 +149,7 @@ class DuplicateFinderView(ttk.Frame):
     def action_trash(self) -> None:
         from pathlib_gui.dialogs.delete import confirm_trash
         from pathlib_gui.services.filesystem import trash_path
+
         paths = self.selected_paths()
         if not paths:
             return

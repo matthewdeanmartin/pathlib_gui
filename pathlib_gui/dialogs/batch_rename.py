@@ -7,7 +7,6 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
 
-
 MODES = [
     "Add prefix",
     "Add suffix",
@@ -88,9 +87,7 @@ class BatchRenameDialog(tk.Toplevel):
         self.param_widgets: dict[str, tk.StringVar] = {}
         self.refresh_params()
 
-        ttk.Label(self, text="Preview (Backend: pathlib.Path.rename / re)", foreground="gray").pack(
-            anchor="w", padx=8
-        )
+        ttk.Label(self, text="Preview (Backend: pathlib.Path.rename / re)", foreground="gray").pack(anchor="w", padx=8)
 
         tree_frame = ttk.Frame(self)
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=8)

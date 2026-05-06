@@ -26,7 +26,8 @@ def inspector_for_path(parent: tk.Widget, path: Path) -> BaseInspector:
     """Return the most appropriate inspector for the given path."""
     from pathlib_gui.inspectors.binary import BinaryInspector
     from pathlib_gui.inspectors.csv_inspector import CsvInspector
-    from pathlib_gui.inspectors.image_inspector import SUPPORTED as IMAGE_SUFFIXES, ImageInspector
+    from pathlib_gui.inspectors.image_inspector import SUPPORTED as IMAGE_SUFFIXES
+    from pathlib_gui.inspectors.image_inspector import ImageInspector
     from pathlib_gui.inspectors.json_inspector import JsonInspector
     from pathlib_gui.inspectors.sqlite_inspector import SqliteInspector
     from pathlib_gui.inspectors.text import TextInspector
@@ -52,18 +53,46 @@ def inspector_for_path(parent: tk.Widget, path: Path) -> BaseInspector:
         return ImageInspector(parent)
     if suffix in (".plist",):
         from pathlib_gui.inspectors.plist_inspector import PlistInspector
+
         return PlistInspector(parent)
     if suffix in (".mbox", ".mbx", ".eml"):
         from pathlib_gui.inspectors.mailbox_inspector import MailboxInspector
+
         return MailboxInspector(parent)
     if suffix in (".ini", ".cfg", ".conf"):
         from pathlib_gui.inspectors.ini_inspector import IniInspector
+
         return IniInspector(parent)
     if suffix in (
-        ".txt", ".md", ".rst", ".py", ".pyw", ".js", ".ts", ".css", ".html",
-        ".htm", ".yaml", ".yml", ".ini", ".cfg", ".conf", ".sh", ".bat",
-        ".c", ".cpp", ".h", ".java", ".rb", ".go", ".rs", ".log", ".diff",
-        ".patch", ".gitignore", ".env",
+        ".txt",
+        ".md",
+        ".rst",
+        ".py",
+        ".pyw",
+        ".js",
+        ".ts",
+        ".css",
+        ".html",
+        ".htm",
+        ".yaml",
+        ".yml",
+        ".ini",
+        ".cfg",
+        ".conf",
+        ".sh",
+        ".bat",
+        ".c",
+        ".cpp",
+        ".h",
+        ".java",
+        ".rb",
+        ".go",
+        ".rs",
+        ".log",
+        ".diff",
+        ".patch",
+        ".gitignore",
+        ".env",
     ):
         return TextInspector(parent)
 

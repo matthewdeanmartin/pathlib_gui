@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime
-import stat
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
@@ -91,6 +90,7 @@ class ArchiveView(ttk.Frame):
             return
 
         import zipfile
+
         is_zip = zipfile.is_zipfile(path)
         for m in self.members:
             icon = "📁" if m.is_dir else ("🔗" if m.is_symlink else "📄")
@@ -147,6 +147,7 @@ class ArchiveView(ttk.Frame):
             skipped = extract_zip_all(path, dest) if len(members) == len(self.members) else []
             if len(members) < len(self.members):
                 from pathlib_gui.services.archive_service import extract_zip_member, safe_extract_path
+
                 skipped = []
                 for m in members:
                     t = safe_extract_path(m.name, dest)
@@ -158,6 +159,7 @@ class ArchiveView(ttk.Frame):
             skipped = extract_tar_all(path, dest) if len(members) == len(self.members) else []
             if len(members) < len(self.members):
                 from pathlib_gui.services.archive_service import extract_tar_member, safe_extract_path
+
                 skipped = []
                 for m in members:
                     t = safe_extract_path(m.name, dest)
@@ -180,8 +182,9 @@ class ArchiveView(ttk.Frame):
             return
         try:
             tmp_path = preview_member(self.archive_path, m.name)
-            from pathlib_gui.models.paths import PathInfo
             from pathlib_gui.inspectors.base import inspector_for_path
+            from pathlib_gui.models.paths import PathInfo
+
             win = tk.Toplevel(self)
             win.title(f"Preview: {m.name}")
             win.geometry("800x600")
@@ -196,6 +199,7 @@ class ArchiveView(ttk.Frame):
         if not self.archive_path:
             return
         import zipfile as zf_mod
+
         try:
             if zf_mod.is_zipfile(self.archive_path):
                 bad = test_zip(self.archive_path)
@@ -209,7 +213,8 @@ class ArchiveView(ttk.Frame):
                     messagebox.showinfo("Integrity OK", "TAR test passed — all members readable.", parent=self)
                 else:
                     messagebox.showerror(
-                        "Integrity Errors", f"{len(errors)} unreadable member(s):\n" + "\n".join(errors[:5]),
+                        "Integrity Errors",
+                        f"{len(errors)} unreadable member(s):\n" + "\n".join(errors[:5]),
                         parent=self,
                     )
         except Exception as e:

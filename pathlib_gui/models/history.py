@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import datetime
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from pathlib_gui.models.operations import FileOperation
 
@@ -40,6 +39,7 @@ class HistoryEntry:
         if op.kind == "move" and op.destination and op.sources:
             try:
                 import shutil
+
                 shutil.move(str(op.destination), str(op.sources[0]))
                 return None
             except OSError as e:

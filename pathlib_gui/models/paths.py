@@ -15,11 +15,13 @@ def _owner_group(st: os.stat_result) -> tuple[str, str]:
         return "", ""
     try:
         import pwd
+
         owner = pwd.getpwuid(st.st_uid).pw_name
     except Exception:
         owner = str(st.st_uid)
     try:
         import grp
+
         group = grp.getgrgid(st.st_gid).gr_name
     except Exception:
         group = str(st.st_gid)

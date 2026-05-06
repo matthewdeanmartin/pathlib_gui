@@ -37,7 +37,9 @@ class PreferencesDialog(tk.Toplevel):
         gen = ttk.Frame(nb, padding=10)
         nb.add(gen, text="General")
         ttk.Checkbutton(gen, text="Show hidden files by default", variable=self.show_hidden).pack(anchor="w", pady=2)
-        ttk.Checkbutton(gen, text="Confirm before deleting files", variable=self.confirm_deletes).pack(anchor="w", pady=2)
+        ttk.Checkbutton(gen, text="Confirm before deleting files", variable=self.confirm_deletes).pack(
+            anchor="w", pady=2
+        )
         ttk.Checkbutton(gen, text="Prefer Trash over permanent delete (if available)", variable=self.prefer_trash).pack(
             anchor="w", pady=2
         )

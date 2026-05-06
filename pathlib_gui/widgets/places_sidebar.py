@@ -6,7 +6,7 @@ import sys
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
-from typing import Callable
+from collections.abc import Callable
 
 
 def default_places() -> list[tuple[str, Path]]:

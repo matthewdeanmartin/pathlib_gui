@@ -45,6 +45,7 @@ def main() -> None:
     args = parser.parse_args()
 
     import tkinter as tk
+
     from pathlib_gui.app import PathlibGuiApp
 
     if args.command == "compare":
@@ -71,6 +72,7 @@ def main() -> None:
         app = PathlibGuiApp(root, initial_path=p.parent if p.exists() else None)
         if p.is_file():
             from pathlib_gui.models.paths import PathInfo
+
             root.after(100, lambda: app.inspector.show(PathInfo.from_path(p)))
         root.mainloop()
         return
@@ -83,4 +85,5 @@ def main() -> None:
             initial = p if p.is_dir() else p.parent
 
     from pathlib_gui.app import run_app
+
     run_app(initial_path=initial)

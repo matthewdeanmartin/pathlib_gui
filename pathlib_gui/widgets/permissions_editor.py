@@ -9,14 +9,14 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 
 BITS = [
-    ("Owner read",    stat.S_IRUSR, 0),
-    ("Owner write",   stat.S_IWUSR, 0),
+    ("Owner read", stat.S_IRUSR, 0),
+    ("Owner write", stat.S_IWUSR, 0),
     ("Owner execute", stat.S_IXUSR, 0),
-    ("Group read",    stat.S_IRGRP, 1),
-    ("Group write",   stat.S_IWGRP, 1),
+    ("Group read", stat.S_IRGRP, 1),
+    ("Group write", stat.S_IWGRP, 1),
     ("Group execute", stat.S_IXGRP, 1),
-    ("Other read",    stat.S_IROTH, 2),
-    ("Other write",   stat.S_IWOTH, 2),
+    ("Other read", stat.S_IROTH, 2),
+    ("Other write", stat.S_IWOTH, 2),
     ("Other execute", stat.S_IXOTH, 2),
 ]
 
@@ -140,8 +140,7 @@ class PermissionsEditor(ttk.Frame):
 
         ttk.Label(
             win,
-            text=f"Proposed change: {oct(mode)}  {stat.filemode(mode)}\n"
-                 f"Target directory: {self.path}",
+            text=f"Proposed change: {oct(mode)}  {stat.filemode(mode)}\n" f"Target directory: {self.path}",
             foreground="gray",
         ).pack(anchor="w", padx=8, pady=(8, 4))
 

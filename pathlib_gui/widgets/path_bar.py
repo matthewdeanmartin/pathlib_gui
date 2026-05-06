@@ -5,7 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
-from typing import Callable
+from collections.abc import Callable
 
 
 class PathBar(ttk.Frame):
@@ -49,9 +49,7 @@ class PathBar(ttk.Frame):
                 ttk.Label(self.crumb_frame, text="›").pack(side=tk.LEFT)
 
         try:
-            self.crumb_frame.tk.call(
-                "ttk::style", "configure", "Crumb.TButton", "-padding", "2 0"
-            )
+            self.crumb_frame.tk.call("ttk::style", "configure", "Crumb.TButton", "-padding", "2 0")
         except Exception:
             pass
 

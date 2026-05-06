@@ -7,7 +7,7 @@ import queue
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
-from typing import Callable
+from collections.abc import Callable
 
 from pathlib_gui.models.search import SearchQuery, SearchResult
 from pathlib_gui.services.search_service import SearchWorker
@@ -88,9 +88,7 @@ class SearchView(ttk.Frame):
             entry = ttk.Entry(criteria, textvariable=var, width=36)
             entry.grid(row=i, column=1, sticky="w", padx=2)
             if hint:
-                ttk.Label(criteria, text=hint, foreground="gray").grid(
-                    row=i, column=2, sticky="w", padx=4
-                )
+                ttk.Label(criteria, text=hint, foreground="gray").grid(row=i, column=2, sticky="w", padx=4)
 
         next_row = len(text_rows)
 

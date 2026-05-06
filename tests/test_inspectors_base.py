@@ -10,7 +10,7 @@ class TestIsTextLike:
         assert is_text_like(b"Hello, world! This is plain ASCII text.\n") is True
 
     def test_valid_utf8(self) -> None:
-        assert is_text_like("café résumé naïve".encode("utf-8")) is True
+        assert is_text_like("café résumé naïve".encode()) is True
 
     def test_empty_bytes_is_true_via_utf8_decode(self) -> None:
         # Empty bytes decodes as valid UTF-8, so is_text_like returns True

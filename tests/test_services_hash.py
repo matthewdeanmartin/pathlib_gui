@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import queue
-import time
 from pathlib import Path
 
-import pytest
 
 from pathlib_gui.services.hash_service import BatchHashWorker, find_duplicates, full_hash, partial_hash
 
@@ -55,6 +53,7 @@ class TestPartialHash:
 class TestFullHash:
     def test_sha256_of_known_content(self, tmp_path: Path) -> None:
         import hashlib
+
         f = tmp_path / "known.txt"
         content = b"hello\n"
         f.write_bytes(content)
@@ -67,6 +66,7 @@ class TestFullHash:
 
     def test_md5_algo(self, tmp_path: Path) -> None:
         import hashlib
+
         f = tmp_path / "f.bin"
         content = b"data"
         f.write_bytes(content)

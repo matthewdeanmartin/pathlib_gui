@@ -15,9 +15,7 @@ class IniInspector(BaseInspector):
 
     def __init__(self, parent: tk.Widget, **kwargs: object) -> None:
         super().__init__(parent, **kwargs)
-        ttk.Label(self, text="Backend: configparser.ConfigParser", foreground="gray").pack(
-            anchor="w", padx=4, pady=2
-        )
+        ttk.Label(self, text="Backend: configparser.ConfigParser", foreground="gray").pack(anchor="w", padx=4, pady=2)
         self.tree = ttk.Treeview(self, columns=("key", "value"), show="tree headings")
         self.tree.heading("#0", text="Section")
         self.tree.heading("key", text="Key")
