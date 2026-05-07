@@ -80,7 +80,6 @@ Preferences are stored in `~/.pathlib_gui/config.json`.
 
 ## Documentation
 
-
 - Project overview: [docs/overview/README.md](https://github.com/matthewdeanmartin/pathlib_gui/blob/main/docs/overview/README.md)
 - Installation: [docs/installation.md](https://github.com/matthewdeanmartin/pathlib_gui/blob/main/docs/installation.md)
 - Quick start: [docs/usage/quickstart.md](https://github.com/matthewdeanmartin/pathlib_gui/blob/main/docs/usage/quickstart.md)
