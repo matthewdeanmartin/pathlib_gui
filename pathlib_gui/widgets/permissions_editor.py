@@ -141,7 +141,7 @@ class PermissionsEditor(ttk.Frame):
 
         ttk.Label(
             win,
-            text=f"Proposed change: {oct(mode)}  {stat.filemode(mode)}\n" f"Target directory: {self.path}",
+            text=f"Proposed change: {oct(mode)}  {stat.filemode(mode)}\nTarget directory: {self.path}",
             foreground="gray",
         ).pack(anchor="w", padx=8, pady=(8, 4))
 

@@ -660,7 +660,6 @@ class PathlibGuiApp:
             return
         dest, fmt, compression = result
         try:
-
             from pathlib_gui.services.archive_service import (
                 TarWriteMode,
                 create_bz2,
